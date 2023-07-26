@@ -144,7 +144,7 @@ local function zombify(victim, role, maxHp)
   room:broadcastProperty(victim, "kingdom")
   room:broadcastProperty(victim, "gender")
   table.insertIfNeed(room.alive_players, victim)
-  room:broadcastPlaySound("./packages/joy/audio/zombify-" ..
+  room:broadcastPlaySound("./packages/gamemode/audio/zombify-" ..
     (gender == General.Male and "male" or "female"))
 end
 
