@@ -181,6 +181,14 @@ local m_1v1_mode = fk.CreateGameMode{
   surrender_func = function(self, playedTime)
     return { { text = "1v1: left last one", passed = Self:getMark("_1v1_generals") ~= 0 and #Self:getMark("_1v1_generals") == 3 } }
   end,
+  winner_getter = function(self, victim)
+    local room = victim.room
+    local alive = table.filter(room.alive_players, function(p)
+      return not p.surrendered
+    end)
+    if #alive > 1 then return "" end
+    return alive[1].role
+  end,
 }
 -- extension:addGameMode(m_1v1_mode)
 Fk:loadTranslationTable{

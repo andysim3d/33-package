@@ -69,18 +69,6 @@ local m_2v2_getLogic = function()
 
   return m_2v2_logic
 end
-local function getWinner22(victim)
-  local room = victim.room
-  local alive = room.alive_players
-  local winner = alive[1].role
-  for _, p in ipairs(alive) do
-    if p.role ~= winner then
-      return ""
-    end
-  end
-
-  return winner
-end
 local m_2v2_rule = fk.CreateTriggerSkill{
   name = "#m_2v2_rule",
   priority = 0.001,
@@ -97,7 +85,7 @@ local m_2v2_rule = fk.CreateTriggerSkill{
         data.n = data.n - 1
       end
     elseif event == fk.GameOverJudge then
-      local winner = getWinner22(player)
+      local winner = Fk.game_modes[room.settings.gameMode]:getWinner(player)
       if winner ~= "" then
         room:gameOver(winner)
         return true
@@ -124,6 +112,19 @@ local m_2v2_mode = fk.CreateGameMode{
       return p.role == Self.role and p.dead
     end) and true } }
     return surrenderJudge
+  end,
+  winner_getter = function(self, victim)
+    local room = victim.room
+    local alive = table.filter(room.alive_players, function(p)
+      return not p.surrendered
+    end)
+    local winner = alive[1].role
+    for _, p in ipairs(alive) do
+      if p.role ~= winner then
+        return ""
+      end
+    end
+    return winner
   end,
 }
 Fk:loadTranslationTable{

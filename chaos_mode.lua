@@ -5,7 +5,7 @@ local desc_chaos = [[
 
   ## 身份说明
 
-  游戏由八名玩家进行，**一人一伙，各自为战**，胜利目标为活到最后！
+  游戏由八名玩家进行，**一人一伙，各自为战**，胜利目标为活到最后吃鸡！
 
   游戏目标：按照角色阵亡顺序进行排名，最终存活的玩家为第一名，依照名次结算积分。
 
@@ -66,6 +66,7 @@ local chaos_getLogic = function()
       p.role = "hidden"
       p.role_shown = true
       room:broadcastProperty(p, "role")
+      --p.role = p._splayer:getScreenName() --结算显示更好，但身份图标疯狂报错
     end
 
     self.start_role = "hidden"
@@ -138,6 +139,7 @@ local chaos_getLogic = function()
 
   return chaos_logic
 end
+
 local chaos_event = { "luanwu", "generous_reward", "burning_one's_boats", "leveling_the_blades", "sweeping_all", "starvation", "poisoned_banquet" }
 
 local chaos_rule = fk.CreateTriggerSkill{
@@ -166,8 +168,11 @@ local chaos_rule = fk.CreateTriggerSkill{
     elseif event == fk.GameOverJudge then
       room:setTag("SkipGameRule", true)
       if #room.alive_players == 1 then
-        room:gameOver(room.alive_players[1]._splayer:getScreenName())
-        return true
+        local winner = Fk.game_modes[room.settings.gameMode]:getWinner(player)
+        if winner ~= "" then
+          room:gameOver(winner)
+          return true
+        end
       end
     elseif event == fk.BuryVictim then
       if data.damage and data.damage.from then
@@ -186,6 +191,10 @@ local chaos_rule = fk.CreateTriggerSkill{
       end
       room:notifyMoveFocus(room.alive_players, self.name)
       room:doBroadcastNotify("ShowToast", Fk:translate("chaos_e: " .. tostring(index)))
+      room:sendLog{
+        type = "chaos_mode_event_log",
+        arg = "chaos_e: " .. tostring(index),
+      }
       room:delay(3500)
       if index == 1 then
         local from = table.random(room.alive_players)
@@ -322,6 +331,15 @@ local chaos_mode = fk.CreateGameMode{
     local surrenderJudge = { { text = "chaos: left two alive", passed = #Fk:currentRoom().alive_players == 2 } }
     return surrenderJudge
   end,
+  winner_getter = function(self, victim)
+    local room = victim.room
+    local alive = table.filter(room.alive_players, function(p)
+      return not p.surrendered
+    end)
+    if #alive > 1 then return "" end
+    alive[1].role = "renegade" --生草
+    return "renegade"
+  end,
 }
 
 Fk:loadTranslationTable{
@@ -345,6 +363,7 @@ Fk:loadTranslationTable{
   ["poisoned_banquet"] = "宴安鸩毒",
   ["#chaos_mode_event_4_log"] = "%from 由于“%arg”，将 %arg2 置入装备区",
   ["#chaos_rule_filter"] = "宴安鸩毒",
+  ["chaos_mode_event_log"] = "本轮的“文和乱武” %arg",
 }
 
 return chaos_mode

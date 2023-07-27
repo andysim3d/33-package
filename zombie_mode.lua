@@ -97,33 +97,6 @@ end
 local human_role = { "lord", "loyalist" }
 local zombie_role = { "rebel", "renegade" }
 
-local function getWinnerZombie(victim)
-  local room = victim.room
-  local haszombie = table.find(room.players, function(p) return p.role == "rebel" end)
-
-  local alive = room.alive_players
-  if #alive == 1 and not haszombie then
-    return "rebel"
-  end
-
-  local rebel_win = true
-  local lord_win = haszombie
-  for _, p in ipairs(alive) do
-    if table.contains(human_role, p.role) then
-      rebel_win = false
-    end
-    if table.contains(zombie_role, p.role) then
-      lord_win = false
-    end
-  end
-
-  local winner
-  if lord_win then winner = "lord+loyalist" end
-  if rebel_win then winner = "rebel" end
-
-  return winner
-end
-
 local function zombify(victim, role, maxHp)
   local room = victim.room
   local gender = victim.gender
@@ -272,7 +245,7 @@ local zombie_rule = fk.CreateTriggerSkill{
         end
       end
 
-      local winner = getWinnerZombie(victim)
+      local winner = Fk.game_modes[room.settings.gameMode]:getWinner(victim)
       if winner then
         room:gameOver(winner)
         return true
@@ -288,6 +261,34 @@ local zombie_mode = fk.CreateGameMode{
   maxPlayer = 8,
   logic = zombie_getLogic,
   rule = zombie_rule,
+  winner_getter = function(self, victim)
+    local room = victim.room
+    local haszombie = table.find(room.players, function(p) return p.role == "rebel" end)
+
+    local alive = table.filter(room.alive_players, function(p)
+      return not p.surrendered
+    end)
+    if #alive == 1 and not haszombie then
+      return "rebel"
+    end
+
+    local rebel_win = true
+    local lord_win = haszombie
+    for _, p in ipairs(alive) do
+      if table.contains(human_role, p.role) then
+        rebel_win = false
+      end
+      if table.contains(zombie_role, p.role) then
+        lord_win = false
+      end
+    end
+
+    local winner
+    if lord_win then winner = "lord+loyalist" end
+    if rebel_win then winner = "rebel" end
+
+    return winner
+  end,
 }
 
 Fk:loadTranslationTable{
@@ -298,7 +299,7 @@ Fk:loadTranslationTable{
   ["zombie_zaibian"] = "灾变",
   [":zombie_zaibian"] = "锁定技，摸牌阶段，若人类玩家数-僵尸玩家数+1大于0，则你多摸该数目的牌。",
   ["zombie_ganran"] = "感染",
-  [":zombie_ganran"] = "锁定技，你手牌中的装备牌视为铁锁连环。",
+  [":zombie_ganran"] = "锁定技，你手牌中的装备牌视为【铁锁连环】。",
   ["zombie_mode"] = "僵尸模式",
   [":zombie_mode"] = zombie_desc,
   ["@zombie_tuizhi"] = "退治",
