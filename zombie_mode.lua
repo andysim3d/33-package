@@ -103,8 +103,8 @@ local function zombify(victim, role, maxHp)
   local kingdom = victim.kingdom
   room:changeHero(victim, "zombie", false, true)
   victim.role = role
-  room:revivePlayer(victim, true)
   victim.maxHp = math.ceil(maxHp / 2)
+  room:revivePlayer(victim, true)
   room:broadcastProperty(victim, "role")
   room:broadcastProperty(victim, "maxHp")
   room:setPlayerProperty(victim, "kingdom", kingdom)
