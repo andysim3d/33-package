@@ -130,20 +130,12 @@ local function zombify(victim, role, maxHp)
   local kingdom = victim.kingdom
   room:changeHero(victim, "zombie", false, true)
   victim.role = role
-  victim.dead = false
-  victim.dying = false
+  room:revivePlayer(victim, true)
   victim.maxHp = math.ceil(maxHp / 2)
-  victim.hp = victim.maxHp
-  victim.kingdom = kingdom
-  victim.gender = gender
-  room:broadcastProperty(victim, "dead")
-  room:broadcastProperty(victim, "dying")
   room:broadcastProperty(victim, "role")
   room:broadcastProperty(victim, "maxHp")
-  room:broadcastProperty(victim, "hp")
-  room:broadcastProperty(victim, "kingdom")
-  room:broadcastProperty(victim, "gender")
-  table.insertIfNeed(room.alive_players, victim)
+  room:setPlayerProperty(victim, "kingdom", kingdom)
+  room:setPlayerProperty(victim, "gender", gender)
   room:broadcastPlaySound("./packages/gamemode/audio/zombify-" ..
     (gender == General.Male and "male" or "female"))
 end
@@ -260,7 +252,22 @@ local zombie_rule = fk.CreateTriggerSkill{
           end
 
           if table.contains(zombie_role, killer.role) then
-            zombify(victim, "renegade", killer.maxHp)
+            local current = room.logic:getCurrentEvent()
+            local last_event
+            if room.current == victim then
+              last_event = current:findParent(GameEvent.Turn, true)
+            elseif table.contains({GameEvent.Round, GameEvent.Turn}, current.event) then
+              last_event = current
+            else
+              last_event = current
+              repeat
+                if last_event.parent.event == GameEvent.Phase then break end
+                last_event = last_event.parent
+              until not last_event
+            end
+            last_event:addExitFunc(function()
+              zombify(victim, "renegade", killer.maxHp)
+            end)
           end
         end
       end
