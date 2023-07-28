@@ -113,8 +113,8 @@ local m_1v1_rule = fk.CreateTriggerSkill{
     if event == fk.DrawInitialCards then
       data.num = math.min(player.maxHp, 5)
     elseif event == fk.DrawNCards then
-      if player.seat == 1 and player:getMark(self.name) == 0 then
-        room:addPlayerMark(player, self.name, 1)
+      if player.seat == 1 and player.tag[self.name] == nil then
+        player.tag[self.name] = 1
         room:setTag("SkipNormalDeathProcess", true)
         data.n = data.n - 1
       end
