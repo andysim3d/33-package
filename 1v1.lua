@@ -169,8 +169,8 @@ local m_1v1_rule = fk.CreateTriggerSkill{
         room:setPlayerProperty(body, "kingdom", Fk.generals[g].kingdom)
         room:askForChooseKingdom({body})
         room:setPlayerProperty(body, "hp", Fk.generals[g].hp)
-        body:drawCards(math.min(body.maxHp, 5), self.name)
         room:setPlayerMark(body, "_1v1_generals", generals)
+        body:drawCards(math.min(body.maxHp, 5), self.name)
         room.logic:trigger("fk.Debut", body, event, false)
       end)
     end
