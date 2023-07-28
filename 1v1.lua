@@ -96,7 +96,7 @@ local m_1v1_getLogic = function()
     room:broadcastProperty(nonlord, "kingdom")
     room:setPlayerMark(lord, "_1v1_generals", lord_generals)
     room:setPlayerMark(nonlord, "_1v1_generals", nonlord_generals)
-    room:askForChooseKingdom()
+    room:askForChooseKingdom(room.players)
   end
 
   return m_1v1_logic
@@ -104,7 +104,7 @@ end
 local m_1v1_rule = fk.CreateTriggerSkill{
   name = "#m_1v1_rule",
   priority = 0.001,
-  refresh_events = {fk.DrawInitialCards, fk.DrawNCards, fk.GameOverJudge, fk.BuryVictim},
+  refresh_events = {fk.DrawInitialCards, fk.DrawNCards, fk.GameOverJudge, fk.BuryVictim, fk.GameStart},
   can_refresh = function(self, event, target, player, data)
     return target == player
   end,
@@ -136,6 +136,8 @@ local m_1v1_rule = fk.CreateTriggerSkill{
       if #generals > 3 then return end
       room:gameOver(body.next.role)
       return true
+    elseif event == fk.GameStart then
+      room.logic:trigger("fk.Debut", player, event, false)
     else
       room:setTag("SkipGameRule", true)
       local body = room:getPlayerById(data.who)
@@ -165,9 +167,11 @@ local m_1v1_rule = fk.CreateTriggerSkill{
 
         room:revivePlayer(body, false)
         room:setPlayerProperty(body, "kingdom", Fk.generals[g].kingdom)
+        room:askForChooseKingdom({body})
         room:setPlayerProperty(body, "hp", Fk.generals[g].hp)
         body:drawCards(math.min(body.maxHp, 5), self.name)
         room:setPlayerMark(body, "_1v1_generals", generals)
+        room.logic:trigger("fk.Debut", body, event, false)
       end)
     end
   end,

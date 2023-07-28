@@ -36,7 +36,7 @@ local poisonAction = fk.CreateTriggerSkill{
   end,
   on_trigger = function(self, event, target, player, data)
     local poison_losehp = (data.extra_data or {}).poison_losehp or {}
-    player.room:notifySkillInvoked(player, "#chaos_rule_filter", "negative")
+    player.room:notifySkillInvoked(player, self.name, "negative")
     player.room:loseHp(player, #table.filter(poison_losehp, function(pid) return pid == player.id end), "poison")
   end,
 
@@ -46,7 +46,7 @@ local poisonAction = fk.CreateTriggerSkill{
   end,
   on_refresh = function(self, event, target, player, data)
     for _, move in ipairs(data) do
-      if move.from == player.id then
+      if move.from == player.id and move.moveReason ~= fk.ReasonUse then
         for _, info in ipairs(move.moveInfo) do
           if info.fromArea == Card.PlayerHand and (info.moveVisible or move.toArea == Card.PlayerEquip or move.toArea == Card.PlayerJudge or move.toArea == Card.DiscardPile or move.toArea == Card.Processing) then --寄 
             local id = info.cardId
@@ -74,6 +74,8 @@ extension:addCards{
 Fk:loadTranslationTable{
   ["poison"] = "毒",
   [":poison"] = "基本牌<br /><b>时机</b>：出牌阶段<br /><b>目标</b>：体力值大于0的你<br /><b>效果</b>：目标角色失去1点体力。<br />锁定技，当此牌正面朝上离开你的手牌区后，你失去1点体力。",
+
+  ["poison_action"] = "毒",
 }
 
 local timeFlyingSkill = fk.CreateActiveSkill{
