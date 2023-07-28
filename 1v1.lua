@@ -161,6 +161,12 @@ local m_1v1_rule = fk.CreateTriggerSkill{
         local g = room:askForGeneral(body, generals, 1)
         if type(g) == "table" then g = g[1] end
         table.removeOne(generals, g)
+        local og = Fk.generals[body.general]
+        local to_rm = table.map(og.related_skills, Util.NameMapper)
+        table.insertTable(to_rm, og.related_other_skills)
+        room:handleAddLoseSkills(body, table.concat(
+          table.map(to_rm, function(s) return "-" .. s end), "|"), nil, true)
+
         room:changeHero(body, g, true, false, true)
 
         -- trigger leave
