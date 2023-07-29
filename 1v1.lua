@@ -23,6 +23,17 @@ local desc_1v1 = [[
 
 ]]
 
+-- FIXME: Disable same convert by param or extra data
+local function rm(generals, g)
+  local gt = Fk.generals[g].trueName
+  for i, v in ipairs(generals) do
+    if Fk.generals[v].trueName == gt then
+      table.remove(generals, i)
+      return
+    end
+  end
+end
+
 local m_1v1_getLogic = function()
   local m_1v1_logic = GameLogic:subclass("m_1v1_logic")
 
@@ -80,10 +91,10 @@ local m_1v1_getLogic = function()
       if p.general == "" and p.reply_ready then
         local general = json.decode(p.client_reply)[1]
         room:setPlayerGeneral(p, general, true, true)
-        table.removeOne(tab, general)
+        rm(tab, general)
       else
         room:setPlayerGeneral(p, p.default_reply, true, true)
-        table.removeOne(tab, p.default_reply)
+        rm(tab, p.default_reply)
       end
       p.default_reply = ""
     end
@@ -160,7 +171,7 @@ local m_1v1_rule = fk.CreateTriggerSkill{
       last_event:addExitFunc(function()
         local g = room:askForGeneral(body, generals, 1)
         if type(g) == "table" then g = g[1] end
-        table.removeOne(generals, g)
+        rm(generals, g)
         local og = Fk.generals[body.general]
         local to_rm = table.map(og.related_skills, Util.NameMapper)
         table.insertTable(to_rm, og.related_other_skills)
