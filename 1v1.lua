@@ -112,6 +112,30 @@ local m_1v1_getLogic = function()
 
   return m_1v1_logic
 end
+
+local function drawInit(room, player, n)
+  -- TODO: need a new function to call the UI
+  local cardIds = room:getNCards(n)
+  player:addCards(Player.Hand, cardIds)
+  for _, id in ipairs(cardIds) do
+    Fk:filterCard(id, player)
+  end
+  local move_to_notify = {}   ---@type CardsMoveStruct
+  move_to_notify.toArea = Card.PlayerHand
+  move_to_notify.to = player.id
+  move_to_notify.moveInfo = {}
+  move_to_notify.moveReason = fk.ReasonDraw
+  for _, id in ipairs(cardIds) do
+    table.insert(move_to_notify.moveInfo,
+    { cardId = id, fromArea = Card.DrawPile })
+  end
+  room:notifyMoveCards(nil, {move_to_notify})
+
+  for _, id in ipairs(cardIds) do
+    room:setCardArea(id, Card.PlayerHand, player.id)
+  end
+end
+
 local m_1v1_rule = fk.CreateTriggerSkill{
   name = "#m_1v1_rule",
   priority = 0.001,
@@ -187,7 +211,8 @@ local m_1v1_rule = fk.CreateTriggerSkill{
         room:askForChooseKingdom({body})
         room:setPlayerProperty(body, "hp", Fk.generals[g].hp)
         room:setPlayerMark(body, "_1v1_generals", generals)
-        body:drawCards(math.min(body.maxHp, 5), self.name)
+        --body:drawCards(math.min(body.maxHp, 5), self.name)
+        drawInit(room, body, math.min(body.maxHp, 5))
         room.logic:trigger("fk.Debut", body, event, false)
       end)
     end

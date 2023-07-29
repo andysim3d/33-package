@@ -11,6 +11,8 @@ local desc_chaos = [[
 
   击杀奖惩：击杀一名其他角色后，击杀者增加1点体力上限并摸三张牌。
 
+  另外每名角色都有〖完杀〗。
+
   ---
 
   ## 特殊事件
@@ -148,7 +150,7 @@ local chaos_rule = fk.CreateTriggerSkill{
   refresh_events = {fk.GameStart, fk.GameOverJudge, fk.BuryVictim, fk.RoundStart, fk.EventPhaseChanging, fk.DamageInflicted, fk.RoundEnd},
   can_refresh = function(self, event, target, player, data)
     local room = player.room
-    if event == fk.GameStart then return player.role == "lord" 
+    if event == fk.GameStart then return player.seat == 1
     elseif event == fk.EventPhaseChanging then
       if target ~= player then return false end
       if data.from == Player.NotActive and room:getTag("chaos_mode_event") == 3 then return true end
@@ -165,6 +167,9 @@ local chaos_rule = fk.CreateTriggerSkill{
     local room = player.room
     if event == fk.GameStart then
       room:setTag("SkipNormalDeathProcess", true)
+      for _, p in ipairs(room.players) do
+        room:handleAddLoseSkills(p, "wansha", nil, false, true)
+      end
     elseif event == fk.GameOverJudge then
       room:setTag("SkipGameRule", true)
       if #room.alive_players == 1 then
@@ -197,6 +202,7 @@ local chaos_rule = fk.CreateTriggerSkill{
       }
       room:delay(3500)
       if index == 1 then
+        room:broadcastSkillInvoke("luanwu")
         local from = table.random(room.alive_players)
         local temp = from.next
         local targets = {from}
