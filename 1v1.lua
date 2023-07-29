@@ -190,7 +190,7 @@ local m_1v1_rule = fk.CreateTriggerSkill{
         repeat
           if last_event.parent.event == GameEvent.Phase then break end
           last_event = last_event.parent
-        until not last_event
+        until (not last_event) or (not last_event.parent)
       end
       last_event:addExitFunc(function()
         local g = room:askForGeneral(body, generals, 1)
