@@ -183,14 +183,18 @@ local m_1v1_rule = fk.CreateTriggerSkill{
       local last_event
       if room.current == body then
         last_event = current:findParent(GameEvent.Turn, true)
-      elseif table.contains({GameEvent.Round, GameEvent.Turn}, current.event) then
-        last_event = current
       else
+        
+        last_event = current:findParent(GameEvent.Round, true)
+        --[[
         last_event = current
-        repeat
-          if last_event.parent.event == GameEvent.Phase then break end
-          last_event = last_event.parent
-        until (not last_event) or (not last_event.parent)
+        if last_event.parent then
+          repeat
+            if table.contains({GameEvent.Round, GameEvent.Turn, GameEvent.Phase}, last_event.parent.event) then break end
+            last_event = last_event.parent
+          until (not last_event.parent)
+        end
+        ]]
       end
       last_event:addExitFunc(function()
         local g = room:askForGeneral(body, generals, 1)

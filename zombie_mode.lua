@@ -223,20 +223,19 @@ local zombie_rule = fk.CreateTriggerSkill{
             killer.role = "rebel"
             room:broadcastProperty(killer, "role")
           end
-
           if table.contains(zombie_role, killer.role) then
             local current = room.logic:getCurrentEvent()
             local last_event
             if room.current == victim then
               last_event = current:findParent(GameEvent.Turn, true)
-            elseif table.contains({GameEvent.Round, GameEvent.Turn}, current.event) then
-              last_event = current
             else
               last_event = current
-              repeat
-                if last_event.parent.event == GameEvent.Phase then break end
-                last_event = last_event.parent
-              until not last_event
+              if last_event.parent then
+                repeat
+                  if table.contains({GameEvent.Round, GameEvent.Turn, GameEvent.Phase}, last_event.parent.event) then break end
+                  last_event = last_event.parent
+                until (not last_event.parent)
+              end
             end
             last_event:addExitFunc(function()
               zombify(victim, "renegade", killer.maxHp)
