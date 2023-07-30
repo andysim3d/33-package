@@ -3,7 +3,8 @@ local extension = Package("gamemode")
 extension:addGameMode(require "packages/gamemode/1v2")
 extension:addGameMode(require "packages/gamemode/2v2")
 -- extension:addGameMode(require "packages/gamemode/rand")
---extension:addGameMode(require "packages/gamemode/1v1")
+extension:addGameMode(require "packages/gamemode/1v1")
+--[[
 local m_1v1_mode = fk.CreateGameMode{
   name = "m_1v1_mode",
   minPlayer = 2,
@@ -13,7 +14,7 @@ extension:addGameMode(m_1v1_mode)
 Fk:loadTranslationTable{
   ["m_1v1_mode"] = "1v1",
 }
-
+--]]
 extension:addGameMode(require "packages/gamemode/chaos_mode")
 
 local chaosCards = require "packages/gamemode/chaos_mode_cards"

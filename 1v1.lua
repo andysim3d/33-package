@@ -105,8 +105,7 @@ local m_1v1_getLogic = function()
     room:broadcastProperty(nonlord, "general")
     room:broadcastProperty(lord, "kingdom")
     room:broadcastProperty(nonlord, "kingdom")
-    room:setPlayerMark(lord, "_1v1_generals", lord_generals)
-    room:setPlayerMark(nonlord, "_1v1_generals", nonlord_generals)
+    room:setTag("1v1_generals", {lord_generals, nonlord_generals})
     room:askForChooseKingdom(room.players)
   end
 
@@ -156,11 +155,12 @@ local m_1v1_rule = fk.CreateTriggerSkill{
     elseif event == fk.GameOverJudge then
       room:setTag("SkipGameRule", true)
       local body = room:getPlayerById(data.who)
-      local generals = body:getMark("_1v1_generals")
+      local all_generals = room:getTag("1v1_generals")
+      local generals = all_generals[body.seat]
       local num, num2
       for _, p in ipairs(room.players) do
-        local n = 5 - #p:getMark("_1v1_generals")
-        if p == body then n = n + 1 end
+        local n = 5 - #room:getTag("1v1_generals")[p.seat]
+        if p.dead then n = n + 1 end
         if p.role == "lord" then
           num = n
         else
@@ -176,7 +176,8 @@ local m_1v1_rule = fk.CreateTriggerSkill{
     else
       room:setTag("SkipGameRule", true)
       local body = room:getPlayerById(data.who)
-      local generals = body:getMark("_1v1_generals")
+      local all_generals = room:getTag("1v1_generals")
+      local generals = all_generals[body.seat]
       body:bury()
 
       local current = room.logic:getCurrentEvent()
@@ -210,8 +211,7 @@ local m_1v1_rule = fk.CreateTriggerSkill{
         room:setPlayerProperty(body, "kingdom", Fk.generals[g].kingdom)
         room:askForChooseKingdom({body})
         room:setPlayerProperty(body, "hp", Fk.generals[g].hp)
-        room:setPlayerMark(body, "_1v1_generals", generals)
-        --body:drawCards(math.min(body.maxHp, 5), self.name)
+        room:setTag("1v1_generals", body.seat == 1 and {generals, all_generals[2]} or {all_generals[1], generals})
         drawInit(room, body, math.min(body.maxHp, 5))
         room.logic:trigger("fk.Debut", body, event, false)
       end)
@@ -225,14 +225,14 @@ local m_1v1_mode = fk.CreateGameMode{
   rule = m_1v1_rule,
   logic = m_1v1_getLogic,
   surrender_func = function(self, playedTime)
-    return { { text = "1v1: left last one", passed = Self:getMark("_1v1_generals") ~= 0 and #Self:getMark("_1v1_generals") == 3 } }
+    return { { text = "time limitation: 2 min", passed = playedTime >= 120 } }
   end,
   winner_getter = function(self, victim)
     local room = victim.room
     local alive = table.filter(room.alive_players, function(p)
       return not p.surrendered
     end)
-    if #alive > 1 then return "" end
+    if #alive ~= 1 then return "" end
     return alive[1].role
   end,
 }
@@ -244,7 +244,6 @@ Fk:loadTranslationTable{
   ["1v1 choose general"] = "请选择第一名出战的武将",
   ["1v1 score"] = "已阵亡武将数 先手 ",
   ["_1v1 score"] = " 后手",
-  ["1v1: left last one"] = "只剩最后一名出场武将",
 
   [":m_1v1_mode"] = desc_1v1,
 }
