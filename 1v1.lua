@@ -184,9 +184,6 @@ local m_1v1_rule = fk.CreateTriggerSkill{
       if room.current == body then
         last_event = current:findParent(GameEvent.Turn, true)
       else
-        
-        last_event = current:findParent(GameEvent.Round, true)
-        --[[
         last_event = current
         if last_event.parent then
           repeat
@@ -194,7 +191,6 @@ local m_1v1_rule = fk.CreateTriggerSkill{
             last_event = last_event.parent
           until (not last_event.parent)
         end
-        ]]
       end
       last_event:addExitFunc(function()
         local g = room:askForGeneral(body, generals, 1)
