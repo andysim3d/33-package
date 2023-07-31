@@ -119,10 +119,9 @@ Fk:addSkill(m_bahu)
 local m_1v2_rule = fk.CreateTriggerSkill{
   name = "#m_1v2_rule",
   priority = 0.001,
-  refresh_events = {fk.GameStart, fk.BuryVictim},
+  refresh_events = {fk.GameStart, fk.Deathed},
   can_refresh = function(self, event, target, player, data)
-    if event == fk.GameStart then return player.role == "lord" end
-    return target == player
+    return event == fk.GameStart and player.role == "lord" or target == player
   end,
   on_refresh = function(self, event, target, player, data)
     local room = player.room
@@ -141,7 +140,7 @@ local m_1v2_rule = fk.CreateTriggerSkill{
             table.insert(choices, 2, "m_1v2_heal")
           end
           local choice = room:askForChoice(p, choices, self.name)
-          if choice == "m_1v2_draw2" then p:drawCards(2)
+          if choice == "m_1v2_draw2" then p:drawCards(2, self.name)
           else room:recover{ who = p, num = 1, skillName = self.name } end
         end
       end

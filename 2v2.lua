@@ -72,7 +72,7 @@ end
 local m_2v2_rule = fk.CreateTriggerSkill{
   name = "#m_2v2_rule",
   priority = 0.001,
-  refresh_events = {fk.DrawNCards, fk.GameOverJudge, fk.BuryVictim},
+  refresh_events = {fk.DrawNCards, fk.GameOverJudge, fk.Deathed},
   can_refresh = function(self, event, target, player, data)
     return target == player
   end,

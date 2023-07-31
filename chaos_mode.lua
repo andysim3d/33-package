@@ -147,7 +147,7 @@ local chaos_event = { "luanwu", "generous_reward", "burning_one's_boats", "level
 local chaos_rule = fk.CreateTriggerSkill{
   name = "#chaos_rule",
   priority = 0.001,
-  refresh_events = {fk.GameStart, fk.GameOverJudge, fk.BuryVictim, fk.RoundStart, fk.EventPhaseChanging, fk.DamageInflicted, fk.RoundEnd, fk.HpChanged, fk.MaxHpChanged},
+  refresh_events = {fk.GameStart, fk.GameOverJudge, fk.Deathed, fk.RoundStart, fk.EventPhaseChanging, fk.DamageInflicted, fk.RoundEnd, fk.HpChanged, fk.MaxHpChanged},
   can_refresh = function(self, event, target, player, data)
     local room = player.room
     if event == fk.GameStart then return player.seat == 1 end
@@ -180,7 +180,7 @@ local chaos_rule = fk.CreateTriggerSkill{
           return true
         end
       end
-    elseif event == fk.BuryVictim then
+    elseif event == fk.Deathed then
       if data.damage and data.damage.from then
         local killer = data.damage.from
         local invoked = room:getTag("chaos_mode_event") == 2
@@ -190,7 +190,11 @@ local chaos_rule = fk.CreateTriggerSkill{
         end
       end
     elseif event == fk.RoundStart then
-      local index = room:getTag("RoundCount") == 1 and 1 or math.random(1, 7)
+      local index = math.random(1, 7)
+      if room:getTag("RoundCount") == 1 then
+        room:doBroadcastNotify("ShowToast", Fk:translate("chaos_fisrt_round"))
+        index = 1
+      end
       room:setTag("chaos_mode_event", index)
       for _, p in ipairs(room.alive_players) do
         room:setPlayerMark(p, "@chaos_mode_event", chaos_event[index])
@@ -223,7 +227,7 @@ local chaos_rule = fk.CreateTriggerSkill{
             return p.id
           end)
           if #luanwu_targets > 1 then
-            local tos = room:askForChoosePlayers(target, luanwu_targets, 1, 1, "#luanwu-slash", self.name, false)
+            local tos = room:askForChoosePlayers(target, luanwu_targets, 1, 1, "#luanwu-slash", self.name, false, true)
             if #tos == 1 then
               luanwu_targets = tos
             else
@@ -389,6 +393,7 @@ Fk:loadTranslationTable{
   ["#chaos_mode_event_4_log"] = "%from 由于“%arg”，将 %arg2 置入装备区",
   ["#chaos_rule_filter"] = "宴安鸩毒",
   ["chaos_mode_event_log"] = "本轮的“文和乱武” %arg",
+  ["chaos_fisrt_round"] = "第一轮时，已受伤角色视为拥有〖八阵〗",
 }
 
 return chaos_mode
