@@ -184,9 +184,11 @@ local chaos_rule = fk.CreateTriggerSkill{
       if data.damage and data.damage.from then
         local killer = data.damage.from
         local invoked = room:getTag("chaos_mode_event") == 2
-        killer:drawCards(invoked and 6 or 3, "kill")
-        if not killer.dead then
-          room:changeMaxHp(killer, invoked and 2 or 1)
+        if not killer.dead then --……
+          killer:drawCards(invoked and 6 or 3, "kill")
+          if not killer.dead then
+            room:changeMaxHp(killer, invoked and 2 or 1)
+          end
         end
       end
     elseif event == fk.RoundStart then
