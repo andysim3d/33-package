@@ -11,7 +11,7 @@ local desc_chaos = [[
 
   击杀奖惩：击杀一名其他角色后，击杀者增加1点体力上限并摸三张牌。
 
-  另外每名角色都有〖完杀〗。
+  另外每名角色都有〖完杀〗。首轮时，已受伤角色视为拥有〖八阵〗。
 
   ---
 
@@ -147,21 +147,22 @@ local chaos_event = { "luanwu", "generous_reward", "burning_one's_boats", "level
 local chaos_rule = fk.CreateTriggerSkill{
   name = "#chaos_rule",
   priority = 0.001,
-  refresh_events = {fk.GameStart, fk.GameOverJudge, fk.BuryVictim, fk.RoundStart, fk.EventPhaseChanging, fk.DamageInflicted, fk.RoundEnd},
+  refresh_events = {fk.GameStart, fk.GameOverJudge, fk.BuryVictim, fk.RoundStart, fk.EventPhaseChanging, fk.DamageInflicted, fk.RoundEnd, fk.HpChanged, fk.MaxHpChanged},
   can_refresh = function(self, event, target, player, data)
     local room = player.room
-    if event == fk.GameStart then return player.seat == 1
-    elseif event == fk.EventPhaseChanging then
-      if target ~= player then return false end
-      if data.from == Player.NotActive and room:getTag("chaos_mode_event") == 3 then return true end
-      if data.to == Player.NotActive and room:getTag("chaos_mode_event") == 4 then return true end
-      return false
+    if event == fk.GameStart then return player.seat == 1 end
+    if target ~= player then return false end
+    local num = room:getTag("chaos_mode_event")
+    if event == fk.EventPhaseChanging then
+      return (data.from == Player.NotActive and num == 3) or (data.to == Player.NotActive and num == 4)
     elseif event == fk.DamageInflicted then
-      return target == player and room:getTag("chaos_mode_event") == 5
+      return num == 5
     elseif event == fk.RoundEnd then
-      return target == player and room:getTag("chaos_mode_event") == 6
+      return num == 6 or room:getTag("RoundCount") == 1
+    elseif event == fk.HpChanged or event == fk.MaxHpChanged then
+      return room:getTag("RoundCount") == 1
     end
-    return target == player
+    return true
   end,
   on_refresh = function(self, event, target, player, data)
     local room = player.room
@@ -188,7 +189,7 @@ local chaos_rule = fk.CreateTriggerSkill{
           room:changeMaxHp(killer, invoked and 2 or 1)
         end
       end
-    elseif event == fk.RoundStart then --事件全在这儿了
+    elseif event == fk.RoundStart then
       local index = room:getTag("RoundCount") == 1 and 1 or math.random(1, 7)
       room:setTag("chaos_mode_event", index)
       for _, p in ipairs(room.alive_players) do
@@ -238,6 +239,14 @@ local chaos_rule = fk.CreateTriggerSkill{
           end
         end
       end
+    elseif event == fk.HpChanged or event == fk.MaxHpChanged then
+      if not player:isWounded() and player:getMark("_chaos_mode_bazhen") > 0 then
+        room:removePlayerMark(player, "_chaos_mode_bazhen")
+        room:handleAddLoseSkills(player, "-bazhen", nil, false, false)
+      elseif not player:hasSkill("bazhen") and player:isWounded() then
+        room:addPlayerMark(player, "_chaos_mode_bazhen")
+        room:handleAddLoseSkills(player, "bazhen", nil, false, false)
+      end
     elseif event == fk.EventPhaseChanging then
       if room:getTag("chaos_mode_event") == 3 then
         room:loseHp(player, 1, self.name)
@@ -251,18 +260,19 @@ local chaos_rule = fk.CreateTriggerSkill{
           local n = #p:getCardIds("e")
           if n < num then
             num = n
-            targets = {p.id}
+            targets = {}
+            table.insert(targets, p.id)
           elseif n == num then
             table.insert(targets, p.id)
           end
         end
         room:sortPlayersByAction(targets)
+        local types = {Card.SubtypeWeapon, Card.SubtypeArmor, Card.SubtypeDefensiveRide, Card.SubtypeOffensiveRide, Card.SubtypeTreasure}
         for _, pid in ipairs(targets) do
           local p = room:getPlayerById(pid)
           if not p.dead then
             room:loseHp(p, 1, self.name)
             if not p.dead then
-              local types = {Card.SubtypeWeapon, Card.SubtypeArmor, Card.SubtypeDefensiveRide, Card.SubtypeOffensiveRide, Card.SubtypeTreasure}
               local cards = {}
               local draw_pile = table.clone(room.draw_pile)
               table.shuffle(draw_pile)
@@ -289,23 +299,32 @@ local chaos_rule = fk.CreateTriggerSkill{
     elseif event == fk.DamageInflicted then
       data.damage = data.damage + 1
     else
-      local num = 998
-      local targets = {}
-      for _, p in ipairs(room.alive_players) do
-        local n = p:getHandcardNum()
-        if n < num then
-          num = n
-          targets = {p.id}
-        elseif n == num then
-          table.insert(targets, p.id)
+      if room:getTag("RoundCount") == 1 then
+        for _, p in ipairs(room.alive_players) do
+          if p:getMark("_chaos_mode_bazhen") > 0 then
+            room:handleAddLoseSkills(p, "-bazhen", nil, false, false)
+          end
         end
-      end
-      room:sortPlayersByAction(targets)
-      num = room:getTag("RoundCount")
-      for _, pid in ipairs(targets) do
-        local p = room:getPlayerById(pid)
-        if not p.dead then
-          room:loseHp(p, num, self.name)
+      else --第一轮一定是乱武
+        local num = 998
+        local targets = {}
+        for _, p in ipairs(room.alive_players) do
+          local n = p:getHandcardNum()
+          if n < num then
+            num = n
+            targets = {}
+            table.insert(targets, p.id)
+          elseif n == num then
+            table.insert(targets, p.id)
+          end
+        end
+        room:sortPlayersByAction(targets)
+        num = room:getTag("RoundCount")
+        for _, pid in ipairs(targets) do
+          local p = room:getPlayerById(pid)
+          if not p.dead then
+            room:loseHp(p, num, self.name)
+          end
         end
       end
     end
