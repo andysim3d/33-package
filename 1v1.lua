@@ -68,6 +68,12 @@ local m_1v1_getLogic = function()
       removeSame(all_generals, g[1])
       if g[2] then removeSame(all_generals, g[2]) end
       room:doBroadcastNotify("ShowToast", Fk:translate(str) .. Fk:translate(g[1]) .. ' ' .. Fk:translate(g[2] or ""))
+      room:sendLog{
+        type = "#1v1ChooseGeneralsLog",
+        arg = p == lord and "firstPlayer" or "secondPlayer",
+        arg2 = g[1],
+        arg3 = g[2] or "",
+      }
     end
 
     -- 1-2-2-2-2-2-1
@@ -241,6 +247,9 @@ Fk:loadTranslationTable{
   ["m_1v1_mode"] = "1v1",
   ["1v1 Lord choose"] = "先手选择了：",
   ["1v1 Rebel choose"] = "后手选择了：",
+  ["#1v1ChooseGeneralsLog"] = "%arg 选择了 %arg2 %arg3",
+  ["firstPlayer"] = "先手",
+  ["secondPlayer"] = "后手",
   ["1v1 choose general"] = "请选择第一名出战的武将",
   ["1v1 score"] = "已阵亡武将数 先手 ",
   ["_1v1 score"] = " 后手",

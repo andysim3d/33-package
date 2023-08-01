@@ -398,7 +398,7 @@ Fk:loadTranslationTable{
   ["#chaos_rule_filter"] = "宴安鸩毒",
   ["chaos_mode_event_log"] = "本轮的“文和乱武” %arg",
   ["chaos_intro"] = "一人一队，文和乱武的大吃鸡时代，你能入主长安吗？<br>每一轮开始会有随机事件发生，祝你好运。（贾诩的谜之笑容）",
-  ["chaos_fisrt_round"] = "第一轮时，已受伤角色视为拥有〖八阵〗",
+  ["chaos_fisrt_round"] = "第一轮时，已受伤角色视为拥有〖八阵〗。",
 }
 
 return chaos_mode
