@@ -230,16 +230,7 @@ local chaos_rule = fk.CreateTriggerSkill{
           end), function (p)
             return p.id
           end)
-          if #luanwu_targets > 1 then
-            local tos = room:askForChoosePlayers(target, luanwu_targets, 1, 1, "#luanwu-slash", self.name, false, true)
-            if #tos == 1 then
-              luanwu_targets = tos
-            else
-              luanwu_targets = {luanwu_targets[1]}
-              room:doIndicate(target.id, luanwu_targets)
-            end
-          end
-          local use = room:askForUseCard(target, "slash", "slash", "#luanwu-use::" .. luanwu_targets[1], true, {must_targets = luanwu_targets})
+          local use = room:askForUseCard(target, "slash", "slash", "#luanwu-use", true, {exclusive_targets = luanwu_targets})
           if use then
             room:useCard(use)
           else
