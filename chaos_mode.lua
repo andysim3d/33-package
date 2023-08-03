@@ -213,6 +213,7 @@ local chaos_rule = fk.CreateTriggerSkill{
       if index == 1 then
         room:broadcastSkillInvoke("luanwu")
         local from = table.random(room.alive_players)
+        room:notifySkillInvoked(from, "luanwu", "big")
         local temp = from.next
         local targets = {from}
         while temp ~= from do
@@ -222,19 +223,21 @@ local chaos_rule = fk.CreateTriggerSkill{
           temp = temp.next
         end
         for _, target in ipairs(targets) do
-          local other_players = room:getOtherPlayers(target)
-          local luanwu_targets = table.map(table.filter(other_players, function(p2)
-            return table.every(other_players, function(p1)
-              return target:distanceTo(p1) >= target:distanceTo(p2)
+          if not target.dead then
+            local other_players = room:getOtherPlayers(target)
+            local luanwu_targets = table.map(table.filter(other_players, function(p2)
+              return table.every(other_players, function(p1)
+                return target:distanceTo(p1) >= target:distanceTo(p2)
+              end)
+            end), function (p)
+              return p.id
             end)
-          end), function (p)
-            return p.id
-          end)
-          local use = room:askForUseCard(target, "slash", "slash", "#luanwu-use", true, {exclusive_targets = luanwu_targets})
-          if use then
-            room:useCard(use)
-          else
-            room:loseHp(target, 1, self.name)
+            local use = room:askForUseCard(target, "slash", "slash", "#luanwu-use", true, {exclusive_targets = luanwu_targets})
+            if use then
+              room:useCard(use)
+            else
+              room:loseHp(target, 1, self.name)
+            end
           end
         end
       end
