@@ -1,3 +1,5 @@
+-- SPDX-License-Identifier: GPL-3.0-or-later
+
 local zombie_desc = [=====[
   # 僵尸模式简介
 

@@ -353,7 +353,7 @@ local chaos_mode = fk.CreateGameMode{
   maxPlayer = 8,
   rule = chaos_rule,
   logic = chaos_getLogic,
-  blacklist = {"variation"},
+  blacklist = {"espionage_cards", "variation_cards"},
   surrender_func = function(self, playedTime)
     local surrenderJudge = { { text = "chaos: left two alive", passed = #Fk:currentRoom().alive_players == 2 } }
     return surrenderJudge

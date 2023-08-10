@@ -1,101 +1,28 @@
-local extension = Package("gamemode")
+-- SPDX-License-Identifier: GPL-3.0-or-later
+
+local extension = Package:new("gamemode", Package.SpecialPack)
 
 extension:addGameMode(require "packages/gamemode/1v2")
 extension:addGameMode(require "packages/gamemode/2v2")
 -- extension:addGameMode(require "packages/gamemode/rand")
 extension:addGameMode(require "packages/gamemode/1v1")
---[[
-local m_1v1_mode = fk.CreateGameMode{
-  name = "m_1v1_mode",
-  minPlayer = 2,
-  maxPlayer = 2,
-}
-extension:addGameMode(m_1v1_mode)
-Fk:loadTranslationTable{
-  ["m_1v1_mode"] = "1v1",
-}
---]]
 extension:addGameMode(require "packages/gamemode/chaos_mode")
-
-local chaosCards = require "packages/gamemode/chaos_mode_cards"
-
-local zombie = General(extension, "zombie", "god", 1)
-zombie.hidden = true
-zombie:addSkill("ex__paoxiao")
-zombie:addSkill("ol_ex__wansha")
-local xunmeng = fk.CreateTriggerSkill{
-  name = "zombie_xunmeng",
-  anim_type = "offensive",
-  frequency = Skill.Compulsory,
-  events = {fk.DamageCaused},
-  can_trigger = function(self, event, target, player, data)
-    if target ~= player or not player:hasSkill(self.name) then
-      return
-    end
-
-    local c = data.card
-    return c and c.trueName == "slash"
-  end,
-  on_use = function(self, event, target, player, data)
-    local room = player.room
-    data.damage = data.damage + 1
-    if player.hp > 1 then
-      room:loseHp(player, 1, self.name)
-    end
-  end,
-}
-zombie:addSkill(xunmeng)
-local zaibian = fk.CreateTriggerSkill{
-  name = "zombie_zaibian",
-  anim_type = "drawcard",
-  frequency = Skill.Compulsory,
-  events = {fk.DrawNCards},
-  can_trigger = function(self, event, target, player, data)
-    if not (player == target and player:hasSkill(self.name)) then return end
-    local room = player.room
-    local human = #table.filter(room.alive_players, function(p)
-      return p.role == "lord" or p.role == "loyalist"
-    end)
-    local zombie = #room.alive_players - human
-    return human - zombie + 1 > 0
-  end,
-  on_use = function(self, event, target, player, data)
-    local room = player.room
-    local human = #table.filter(room.alive_players, function(p)
-      return p.role == "lord" or p.role == "loyalist"
-    end)
-    local zombie = #room.alive_players - human
-    data.n = data.n + (human - zombie + 1)
-  end,
-}
-zombie:addSkill(zaibian)
-local ganran = fk.CreateFilterSkill{
-  name = "zombie_ganran",
-  card_filter = function(self, to_select, player)
-    return player:hasSkill(self.name) and to_select.type == Card.TypeEquip and
-      not table.contains(player.player_cards[Player.Equip], to_select.id) and
-      not table.contains(player.player_cards[Player.Judge], to_select.id)
-      -- table.contains(player.player_cards[Player.Hand], to_select.id) --不能用getCardArea！
-  end,
-  view_as = function(self, to_select)
-    local card = Fk:cloneCard("iron_chain", to_select.suit, to_select.number)
-    card.skillName = self.name
-    return card
-  end,
-}
-zombie:addSkill(ganran)
+extension:addGameMode(require "packages/gamemode/espionage")
+extension:addGameMode(require "packages/gamemode/variation")
 extension:addGameMode(require "packages/gamemode/zombie_mode")
 
-local ol_variation_mode = fk.CreateGameMode{
-  name = "ol_variation_mode",
-  minPlayer = 2,
-  maxPlayer = 8,
-  package_whitelist = {"variation"},
-}
-extension:addGameMode(ol_variation_mode)
-Fk:loadTranslationTable{
-  ["gamemode"] = "游戏模式专属",
-  ["ol_variation_mode"] = "应变测试版",
-}
+local chaos_mode_cards = require "packages/gamemode/chaos_mode_cards"
+local espionage_cards = require "packages/gamemode/espionage_cards"
+local variation_cards = require "packages/gamemode/variation_cards"
 
-return {extension, chaosCards}
+local zombie = require "packages/gamemode/zombie"
+
+return {
+  extension,
+
+  chaos_mode_cards,
+  espionage_cards,
+  variation_cards,
+
+  zombie,
+}
