@@ -165,6 +165,13 @@ local substitutingSkill = fk.CreateActiveSkill{
     room:delay(1000)
     if #cards == 0 then return false end
     local num = math.random(0, #cards)
+    if to.dead and from.dead then
+      return false
+    elseif from.dead then
+      num = 0 --乐
+    elseif to.dead then
+      num = #cards
+    end
     if num == 0 then
       room:moveCardTo(cards, Card.PlayerHand, to, fk.ReasonJustMove, self.name, nil, false)
     elseif num == #cards then

@@ -183,10 +183,10 @@ local chaos_rule = fk.CreateTriggerSkill{
         end
       end
     elseif event == fk.Deathed then
-      if data.damage and data.damage.from then
+      if data.damage then
         local killer = data.damage.from
-        local invoked = room:getTag("chaos_mode_event") == 2
-        if not killer.dead then --……
+        if killer and not killer.dead then --……
+          local invoked = room:getTag("chaos_mode_event") == 2
           killer:drawCards(invoked and 6 or 3, "kill")
           if not killer.dead then
             room:changeMaxHp(killer, invoked and 2 or 1)
@@ -353,7 +353,6 @@ local chaos_mode = fk.CreateGameMode{
   maxPlayer = 8,
   rule = chaos_rule,
   logic = chaos_getLogic,
-  blacklist = {"espionage_cards", "variation_cards"},
   surrender_func = function(self, playedTime)
     local surrenderJudge = { { text = "chaos: left two alive", passed = #Fk:currentRoom().alive_players == 2 } }
     return surrenderJudge
