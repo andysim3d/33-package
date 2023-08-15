@@ -4,7 +4,7 @@ extension.extensionName = "game_mode"
 extension.game_modes_blacklist = {"aaa_role_mode", "m_1v1_mode", "m_1v2_mode", "m_2v2_mode", "zombie_mode", "heg_mode"}
 
 Fk:loadTranslationTable{
-  ["chaos_mode_cards"] = "文和乱武",
+  ["chaos_mode_cards"] = "文和乱武特殊牌",
 }
 
 local poisonSkill = fk.CreateActiveSkill{
