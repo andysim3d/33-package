@@ -7,7 +7,9 @@ local desc_2v2 = [[
 
   一人死亡后，其队友会摸一张牌。
 
-  第一回合角色摸牌阶段少摸一张牌。
+  第一回合角色摸牌阶段少摸一张牌。四号位多摸一张初始手牌。
+
+  队友手牌可见。
 ]]
 
 local m_2v2_getLogic = function()
@@ -27,6 +29,11 @@ local m_2v2_getLogic = function()
       p.role_shown = true
       room:broadcastProperty(p, "role")
     end
+
+    room.players[1]:addBuddy(room.players[4])
+    room.players[4]:addBuddy(room.players[1])
+    room.players[2]:addBuddy(room.players[3])
+    room.players[3]:addBuddy(room.players[2])
 
     self.start_role = roles[1]
     -- for adjustSeats
@@ -72,7 +79,7 @@ end
 local m_2v2_rule = fk.CreateTriggerSkill{
   name = "#m_2v2_rule",
   priority = 0.001,
-  refresh_events = {fk.DrawNCards, fk.GameOverJudge, fk.Deathed},
+  refresh_events = {fk.DrawInitialCards, fk.DrawNCards, fk.GameOverJudge, fk.Deathed},
   can_refresh = function(self, event, target, player, data)
     return target == player
   end,
@@ -83,6 +90,10 @@ local m_2v2_rule = fk.CreateTriggerSkill{
         room:addPlayerMark(player, self.name, 1)
         room:setTag("SkipNormalDeathProcess", true)
         data.n = data.n - 1
+      end
+    elseif event == fk.DrawInitialCards then
+      if player.seat == 4 then
+        data.num = data.num + 1
       end
     elseif event == fk.GameOverJudge then
       local winner = Fk.game_modes[room.settings.gameMode]:getWinner(player)
