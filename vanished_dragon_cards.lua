@@ -288,7 +288,7 @@ local craftyEscapeTrigger = fk.CreateTriggerSkill{
       return ret
     else
       for _, move in ipairs(data) do
-        if move.from == player.id and move.moveReason == fk.ReasonDiscard then
+        if move.from == player.id and move.moveReason == fk.ReasonDiscard and not player.dead then
           for _, info in ipairs(move.moveInfo) do
             if Fk:getCardById(info.cardId).name == "crafty_escape" then
               return true
@@ -304,7 +304,7 @@ local craftyEscapeTrigger = fk.CreateTriggerSkill{
     else
       local i = 0
       for _, move in ipairs(data) do
-        if move.from == player.id and move.moveReason == fk.ReasonDiscard then
+        if move.from == player.id and move.moveReason == fk.ReasonDiscard and not player.dead then
           for _, info in ipairs(move.moveInfo) do
             if Fk:getCardById(info.cardId).name == "crafty_escape" then
               i = i + 1
