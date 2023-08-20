@@ -26,7 +26,7 @@ local qixi_desc = [==[
 获胜条件为击杀除了自己和伴侣之外的所有其他角色。此外有以下几点奖惩规则：
 
 - 击杀伴侣的角色弃置所有牌并失去一点体力。
-- 击杀其他角色的话，自己和伴侣各摸两张牌，若无伴侣则摸五张牌。
+- 击杀其他角色的话，自己和伴侣各摸两张牌，伴侣已阵亡则摸三张，从未有过伴侣则摸五张。
 - 当伴侣阵亡后，剩余的另一方仍视为结伴状态，且胜负条件不变。
 
 因为没有伴侣就无法击杀其他角色，进而无法获胜，所以尽可能先找好伴侣吧。
@@ -370,8 +370,12 @@ local function rewardAndPunish(killer, victim)
   else
     local couple = room:getPlayerById(c)
     if couple then
-      killer:drawCards(2, "#qixi_rule")
-      couple:drawCards(2, "#qixi_rule")
+      if not couple.dead then
+        killer:drawCards(2, "#qixi_rule")
+        couple:drawCards(2, "#qixi_rule")
+      else
+        killer:drawCards(3, "#qixi_rule")
+      end
     else
       killer:drawCards(5, "#qixi_rule")
     end
