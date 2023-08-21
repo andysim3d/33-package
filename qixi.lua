@@ -216,7 +216,7 @@ local qixi_get_logic = function()
   function qixi_logic:chooseGenerals()
     local room = self.room
 
-    local all_generals = Fk:getAllGenerals()
+    local all_generals = Fk:getAllGenerals({ Fk.generals["mouxusheng"], Fk.generals["blank_shibing"], Fk.generals["blank_nvshibing"] })
 
     local generalNum = math.min(room.settings.generalNum, 8)
     local minGeneralNum = (#room.players * generalNum) // 2
