@@ -60,6 +60,7 @@ local qixi_desc = [==[
 - 甲虫 & 李婉/郭槐
 - 王浑 & 钟琰
 - 杜预 & 宣公主
+- 钟繇 & 张昌蒲
 
 蜀：
 
@@ -71,7 +72,7 @@ local qixi_desc = [==[
 - 诸葛亮/卧龙 & 黄月英
 - 黄忠 & 刘赪
 - 马超 & 杨婉
-- 赵云 & 马云禄
+- 赵云 & 马云禄/周夷 （绷）
 - 关索 & 鲍三娘/王桃/王悦
 
 吴：
@@ -86,6 +87,7 @@ local qixi_desc = [==[
 - 张奋 & 孙翎鸾 （绝望）
 - 滕胤 & 滕公主
 - 孙翊 & 徐氏
+- 全琮 & 孙鲁班
 
 群：
 
@@ -117,6 +119,7 @@ local couples = {
   jiachong = { "liwan", "guohuaij" },
   wanghun = "zhongyan",
   duyu = "xuangongzhu",
+  zhongyao = "zhangchangpu",
 
   -- shu
   liubei = { "ganfuren", "mifuren", "sunshangxiang", "zhangchu", "wuxian" },
@@ -128,7 +131,7 @@ local couples = {
   wolong = "huangyueying",
   huangzhong = "liucheng",
   machao = "yangwan",
-  zhaoyun = "mayunlu",
+  zhaoyun = {"mayunlu", "zhouyi"}, -- 绷
   guansuo = { "baosanniang", "wangtao", "wangyues" },
 
   -- wu
@@ -142,6 +145,7 @@ local couples = {
   zhangfen = "sunlingluan",
   tengyin = "tenggongzhu",
   sunyi = "xushi",
+  quancong = "sunluban",
 
   -- qun
   lvbu = { "diaochan", "yanfuren" },
