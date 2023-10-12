@@ -26,9 +26,11 @@ local desc_brawl = [[
   胜利规则与身份局一致。
 
   禁包、禁将之后其技能不会在技能池中出现。
-
-  游戏开始时可以选择自己的性别为男性或女性，只影响对局中的性别和形象。
 ]]
+
+local ban_skills = {
+  "fenyong",
+}
 
 local brawl_getLogic = function()
   local brawl_logic = GameLogic:subclass("brawl_logic")
@@ -52,7 +54,7 @@ local brawl_getLogic = function()
     local skill_pool = {}
     for _, general in pairs(Fk:getAllGenerals()) do
       for _, skill in ipairs(general.skills) do
-        if not skill.lordSkill and #skill.attachedKingdom == 0 then
+        if not skill.lordSkill and #skill.attachedKingdom == 0 and not table.contains(ban_skills, skill.name) then
           table.insert(skill_pool, skill.name)
         end
       end
@@ -60,6 +62,14 @@ local brawl_getLogic = function()
     skill_pool = table.random(skill_pool, 35)
 
     for k, p in ipairs(players) do
+      local avatar = p._splayer:getAvatar()
+      local avatar_general = Fk.generals[avatar] or Fk.generals["mouxusheng"]
+      room:setPlayerGeneral(p, avatar_general.name, true)
+      room:broadcastProperty(p, "general")
+      room:setPlayerProperty(p, "shield", 0)
+      room:setPlayerProperty(p, "maxHp", p.role == "lord" and 5 or 4)
+      room:setPlayerProperty(p, "hp", p.role == "lord" and 5 or 4)
+
       local skills = table.slice(skill_pool, 10 * k - 9 , 10 * k + 1)
       if p.role == "lord" then table.insertTable(skills, table.slice(skill_pool, 31 , 36)) end
       local num = p.role == "lord" and 3 or 2
@@ -80,6 +90,7 @@ local brawl_getLogic = function()
       p.default_reply = ""
     end
 
+    --[[ 鸽！直接用头像，我写在最前面
     for _, p in ipairs(players) do
       local genders = {"male", "female"}
       local data = json.encode({ genders, genders, "AskForGender", "#ChooseGender" })
@@ -100,20 +111,24 @@ local brawl_getLogic = function()
       room:setPlayerGeneral(p, genderChosen == "male" and "blank_shibing" or "blank_nvshibing", true, true)
       p.default_reply = ""
     end
+    --]]
   end
 
   function brawl_logic:broadcastGeneral()
+    return
+    --[[
     local room = self.room
     local players = room.players
 
     for _, p in ipairs(players) do
       assert(p.general ~= "")
-      room:broadcastProperty(p, "general")
-      room:setPlayerProperty(p, "kingdom", "unknown")
+      -- room:broadcastProperty(p, "general")
+      -- room:setPlayerProperty(p, "kingdom", "unknown")
       room:setPlayerProperty(p, "shield", 0)
       room:setPlayerProperty(p, "maxHp", p.role == "lord" and 5 or 4)
       room:setPlayerProperty(p, "hp", p.role == "lord" and 5 or 4)
     end
+    --]]
   end
 
   function brawl_logic:attachSkillToPlayers()
@@ -178,10 +193,12 @@ Fk:loadTranslationTable{
   ["#brawl_rule"] = "挑选遗产",
   ["#brawl-choose"] = "请选择%arg个技能出战",
   ["@brawl_skills"] = "",
+  --[[
   ["AskForGender"] = "选择性别",
   ["#ChooseGender"] = "请选择你的性别",
   ["male"] = "男性",
   ["female"] = "女性",
+  --]]
 
   [":brawl_mode"] = desc_brawl,
 }
