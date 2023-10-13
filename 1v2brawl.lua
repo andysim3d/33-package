@@ -142,7 +142,6 @@ local brawl_getLogic = function()
       if p.role == "lord" then
         skills = skills .."|m_feiyang|m_bahu"
       end
-      skills = skills .. "|cheat"
       room:handleAddLoseSkills(p, skills, nil, false)
     end
   end
