@@ -211,8 +211,8 @@ local chaos_rule = fk.CreateTriggerSkill{
       }
       room:delay(3500)
       if index == 1 then
-        room:broadcastSkillInvoke("luanwu")
         local from = table.random(room.alive_players)
+        from:broadcastSkillInvoke("luanwu")
         room:notifySkillInvoked(from, "luanwu", "big")
         local temp = from.next
         local targets = {from}

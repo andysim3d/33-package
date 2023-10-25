@@ -30,7 +30,7 @@ local desc_brawl = [[
 
 local ban_skills = {
   "fenyong",
-  "duorui", "quanfeng", "zhongliu", "yongdi", "chuanwu", "tuogu", "zeyue",
+  "duorui", "quanfeng", "zhongliu", "yongdi", "chuanwu", "tuogu", "zeyue", "n_dianlun"
 }
 
 local brawl_getLogic = function()

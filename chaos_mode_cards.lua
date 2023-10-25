@@ -267,7 +267,7 @@ local replaceWithAFakeSkill = fk.CreateActiveSkill{
             ids = IdMapper[p.id],
             fromArea = Card.Processing,
             to = p.id,
-            toArea = Player.Equip,
+            toArea = Card.PlayerEquip,
             moveReason = fk.ReasonJustMove,
             skillName = self.name,
           })
