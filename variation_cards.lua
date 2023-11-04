@@ -174,7 +174,7 @@ local blackChainSkill = fk.CreateTriggerSkill{
   attached_equip = "black_chain",
   events = {fk.TargetSpecified},
   can_trigger = function(self, event, target, player, data)
-    return target == player and player:hasSkill(self.name) and data.card and data.card.trueName == "slash" and
+    return target == player and player:hasSkill(self) and data.card and data.card.trueName == "slash" and
       not player.room:getPlayerById(data.to).chained
   end,
   on_use = function(self, event, target, player, data)
@@ -248,7 +248,7 @@ local breastplateSkill = fk.CreateTriggerSkill{
   attached_equip = "breastplate",
   events = {fk.DamageInflicted},
   can_trigger = function(self, event, target, player, data)
-    return target == player and player:hasSkill(self.name) and (data.damage > 1 or data.damage >= player.hp)
+    return target == player and player:hasSkill(self) and (data.damage > 1 or data.damage >= player.hp)
   end,
   on_use = function(self, event, target, player, data)
     player.room:moveCards({
@@ -306,7 +306,7 @@ local darkArmorSkill = fk.CreateTriggerSkill{
   frequency = Skill.Compulsory,
   events = {fk.TargetConfirmed},
   can_trigger = function(self, event, target, player, data)
-    return target == player and player:hasSkill(self.name) and #AimGroup:getAllTargets(data.tos) > 1 and
+    return target == player and player:hasSkill(self) and #AimGroup:getAllTargets(data.tos) > 1 and
       (data.card.is_damage_card or data.card.color == Card.Black)
   end,
   on_use = function(self, event, target, player, data)
@@ -367,7 +367,7 @@ local taigongTacticsSkill = fk.CreateTriggerSkill{
   mute = true,
   events = {fk.EventPhaseStart, fk.EventPhaseEnd},
   can_trigger = function(self, event, target, player, data)
-    if target == player and player:hasSkill(self.name) and player.phase == Player.Play then
+    if target == player and player:hasSkill(self) and player.phase == Player.Play then
       if event == fk.EventPhaseStart then
         return true
       else

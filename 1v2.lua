@@ -79,7 +79,7 @@ local m_feiyang = fk.CreateTriggerSkill{
   anim_type = "control",
   events = {fk.EventPhaseStart},
   can_trigger = function(self, event, target, player, data)
-    return target == player and player:hasSkill(self.name) and
+    return target == player and player:hasSkill(self) and
       player.phase == Player.Judge and
       #player:getCardIds(Player.Hand) >= 2 and
       #player:getCardIds(Player.Judge) > 0
@@ -95,7 +95,7 @@ Fk:addSkill(m_feiyang)
 local m_bahubuff = fk.CreateTargetModSkill{
   name = "#m_bahubuff",
   residue_func = function(self, player, skill, scope)
-    if player:hasSkill(self.name) and skill.trueName == "slash_skill"
+    if player:hasSkill(self) and skill.trueName == "slash_skill"
       and scope == Player.HistoryPhase then
       return 1
     end
@@ -107,7 +107,7 @@ local m_bahu = fk.CreateTriggerSkill{
   frequency = Skill.Compulsory,
   events = {fk.EventPhaseStart},
   can_trigger = function(self, event, target, player, data)
-    return target == player and player:hasSkill(self.name) and
+    return target == player and player:hasSkill(self) and
       player.phase == Player.Start
   end,
   on_use = function(self, event, target, player, data)

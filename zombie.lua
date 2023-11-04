@@ -10,7 +10,7 @@ local xunmeng = fk.CreateTriggerSkill{
   frequency = Skill.Compulsory,
   events = {fk.DamageCaused},
   can_trigger = function(self, event, target, player, data)
-    if target ~= player or not player:hasSkill(self.name) then
+    if target ~= player or not player:hasSkill(self) then
       return
     end
 
@@ -31,7 +31,7 @@ local zaibian = fk.CreateTriggerSkill{
   frequency = Skill.Compulsory,
   events = {fk.DrawNCards},
   can_trigger = function(self, event, target, player, data)
-    if not (player == target and player:hasSkill(self.name)) then return end
+    if not (player == target and player:hasSkill(self)) then return end
     local room = player.room
     local human = #table.filter(room.alive_players, function(p)
       return p.role == "lord" or p.role == "loyalist"
@@ -51,7 +51,7 @@ local zaibian = fk.CreateTriggerSkill{
 local ganran = fk.CreateFilterSkill{
   name = "zombie_ganran",
   card_filter = function(self, to_select, player)
-    return player:hasSkill(self.name) and to_select.type == Card.TypeEquip and
+    return player:hasSkill(self) and to_select.type == Card.TypeEquip and
       not table.contains(player.player_cards[Player.Equip], to_select.id) and
       not table.contains(player.player_cards[Player.Judge], to_select.id)
       -- table.contains(player.player_cards[Player.Hand], to_select.id) --不能用getCardArea！

@@ -369,7 +369,7 @@ local vd_dongcha = fk.CreateTriggerSkill{
   anim_type = "control",
   events = {fk.GameStart, fk.EventPhaseStart}, --游戏开始时，随机一名反贼的身份对你可见。准备阶段开始时，你可以弃置场上的一张牌。
   can_trigger = function(self, event, target, player, data)
-    return player:hasSkill(self.name) and target == player and (event == fk.GameStart or (player.phase == Player.Start and table.find(player.room.alive_players, function(p) return not p:isAllNude() end)))
+    return player:hasSkill(self) and target == player and (event == fk.GameStart or (player.phase == Player.Start and table.find(player.room.alive_players, function(p) return not p:isAllNude() end)))
   end,
   on_cost = function(self, event, target, player, data)
     if event == fk.EventPhaseStart then
@@ -412,7 +412,7 @@ local vd_sheshen = fk.CreateTriggerSkill{ --锁定技，主公处于濒死状态
   events = {fk.AskForPeachesDone},
   frequency = Skill.Compulsory,
   can_trigger = function(self, event, target, player, data)
-    return player:hasSkill(self.name) and target.role == "lord" and target.hp <= 0 and target.dying
+    return player:hasSkill(self) and target.role == "lord" and target.hp <= 0 and target.dying
   end,
   on_use = function(self, event, target, player, data)
     local room = player.room

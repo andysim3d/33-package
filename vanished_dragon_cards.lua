@@ -526,7 +526,7 @@ local sevenStarsSwordSkill = fk.CreateTriggerSkill{
   frequency = Skill.Compulsory,
   events = {fk.TargetSpecified},
   can_trigger = function(self, event, target, player, data)
-    return target == player and player:hasSkill(self.name) and data.card and data.card.trueName == "slash"
+    return target == player and player:hasSkill(self) and data.card and data.card.trueName == "slash"
   end,
   on_use = function(self, event, target, player, data)
     local room = player.room
@@ -575,7 +575,7 @@ local steelLanceSkill = fk.CreateTriggerSkill{
   attached_equip = "steel_lance",
   events = {fk.TargetSpecified},
   can_trigger = function(self, event, target, player, data)
-    return target == player and player:hasSkill(self.name) and data.card and data.card.trueName == "slash" and not player:isKongcheng() and not player.dead--not player.room:getPlayerById(data.to):isKongcheng()
+    return target == player and player:hasSkill(self) and data.card and data.card.trueName == "slash" and not player:isKongcheng() and not player.dead--not player.room:getPlayerById(data.to):isKongcheng()
   end,
   on_use = function(self, event, target, player, data)
     local room = player.room

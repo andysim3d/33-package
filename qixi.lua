@@ -205,7 +205,7 @@ local sheshen = fk.CreateTriggerSkill{
   anim_type = "defensive",
   events = { fk.DamageInflicted },
   can_trigger = function(self, event, target, player, data)
-    return player:hasSkill(self.name) and data.skillName ~= self.name and isCouple(target, player)
+    return player:hasSkill(self) and data.skillName ~= self.name and isCouple(target, player)
   end,
   on_use = function(self, event, target, player, data)
     local room = player.room
@@ -224,7 +224,7 @@ local gongdou = fk.CreateTriggerSkill{
   anim_type = "offensive",
   events = { fk.CardUseFinished },
   can_trigger = function(self, event, target, player, data)
-    return player:hasSkill(self.name) and isCouple(target, player) and
+    return player:hasSkill(self) and isCouple(target, player) and
       player:usedSkillTimes(self.name, Player.HistoryTurn) == 0 and
       data.card.trueName == 'slash' and not data.card:isVirtual()
   end,
@@ -244,7 +244,7 @@ local lianzhi = fk.CreateTriggerSkill{
   anim_type = 'drawcard',
   events = { fk.CardUsing },
   can_trigger = function(self, event, target, player, data)
-    return target == player and player:hasSkill(self.name) and data.card.type == Card.TypeEquip and
+    return target == player and player:hasSkill(self) and data.card.type == Card.TypeEquip and
       player.room:getPlayerById(player:getMark('qixi_couple')) ~= nil
   end,
   on_use = function(self, event, target, player, data)
@@ -256,7 +256,7 @@ local qibie = fk.CreateTriggerSkill{
   anim_type = 'big',
   events = { fk.AskForPeachesDone },
   can_trigger = function(self, event, target, player, data)
-    return player:hasSkill(self.name) and isCouple(target, player) and
+    return player:hasSkill(self) and isCouple(target, player) and
       target.hp < 1
   end,
   on_use = function(self, event, target, player, data)
