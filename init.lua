@@ -21,6 +21,8 @@ local variation_cards = require "packages/gamemode/variation_cards"
 
 local zombie = require "packages/gamemode/zombie"
 
+Fk:loadTranslationTable(require 'packages/gamemode/i18n/en_US', 'en_US')
+
 return {
   extension,
 
