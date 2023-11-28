@@ -39,28 +39,28 @@ local m_1v2_getLogic = function()
     local lord = room:getLord()
     room.current = lord
     local nonlord = room.players
-    local generals = Fk:getGeneralsRandomly(#nonlord * generalNum)
-    table.shuffle(generals)
-    for _, p in ipairs(nonlord) do
-      local arg = {}
-      for i = 1, generalNum do
-        table.insert(arg, table.remove(generals, 1).name)
-      end
+    local generals = room:getNGenerals(#nonlord * generalNum)
+    for i, p in ipairs(nonlord) do
+      local arg = table.slice(generals, (i - 1) * generalNum + 1, i * generalNum + 1)
       p.request_data = json.encode({ arg, 1 })
       p.default_reply = arg[1]
     end
-
+    room:notifyMoveFocus(nonlord, "AskForGeneral")
     room:doBroadcastRequest("AskForGeneral", nonlord)
+    local selected = {}
     for _, p in ipairs(nonlord) do
+      local general_ret
       if p.general == "" and p.reply_ready then
-        local general = json.decode(p.client_reply)[1]
-        room:setPlayerGeneral(p, general, true, true)
+        general_ret = json.decode(p.client_reply)[1]
       else
-        room:setPlayerGeneral(p, p.default_reply, true, true)
+        general_ret = p.default_reply
       end
+      room:setPlayerGeneral(p, general_ret, true, true)
+      table.insertIfNeed(selected, general_ret)
       p.default_reply = ""
     end
-
+    generals = table.filter(generals, function(g) return not table.contains(selected, g) end)
+    room:returnToGeneralPile(generals)
     room:askForChooseKingdom(nonlord)
 
     for _, p in ipairs(nonlord) do
@@ -84,11 +84,20 @@ local m_feiyang = fk.CreateTriggerSkill{
       #player:getCardIds(Player.Hand) >= 2 and
       #player:getCardIds(Player.Judge) > 0
   end,
+  on_cost = function (self, event, target, player, data)
+    local cards = player.room:askForDiscard(player, 2, 2, false, self.name, false, ".", "#m_feiyang-invoke", true)
+    if #cards == 2 then
+      self.cost_data = cards
+      return true
+    end
+  end,
   on_use = function(self, event, target, player, data)
     local room = player.room
-    room:askForDiscard(player, 2, 2, false, self.name, false)
-    local card = room:askForCardChosen(player, player, "j", self.name)
-    room:throwCard(card, self.name, player, player)
+    room:throwCard(self.cost_data, self.name, player, player)
+    local jcards = player:getCardIds("j")
+    if #jcards == 0 then return end
+    local card = #jcards == 1 and jcards[1] or room:askForCardChosen(player, player, "j", self.name)
+    room:throwCard({card}, self.name, player, player)
   end
 }
 Fk:addSkill(m_feiyang)
@@ -107,8 +116,7 @@ local m_bahu = fk.CreateTriggerSkill{
   frequency = Skill.Compulsory,
   events = {fk.EventPhaseStart},
   can_trigger = function(self, event, target, player, data)
-    return target == player and player:hasSkill(self) and
-      player.phase == Player.Start
+    return target == player and player:hasSkill(self) and player.phase == Player.Start
   end,
   on_use = function(self, event, target, player, data)
     player:drawCards(1)
@@ -168,6 +176,7 @@ Fk:loadTranslationTable{
   ["m_1v2_mode"] = "欢乐斗地主",
   ["m_feiyang"] = "飞扬",
   [":m_feiyang"] = "判定阶段开始时，你可以弃置两张手牌，然后弃置自己判定区的一张牌。",
+  ["#m_feiyang-invoke"] = "飞扬：你可以弃置两张手牌，弃置自己判定区的一张牌",
   ["m_bahu"] = "跋扈",
   [":m_bahu"] = "锁定技，准备阶段，你摸一张牌；出牌阶段，你可以多使用一张【杀】。",
   ["#m_1v2_rule"] = "挑选遗产",
