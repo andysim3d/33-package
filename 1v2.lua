@@ -85,7 +85,7 @@ local m_feiyang = fk.CreateTriggerSkill{
       #player:getCardIds(Player.Judge) > 0
   end,
   on_cost = function (self, event, target, player, data)
-    local cards = player.room:askForDiscard(player, 2, 2, false, self.name, false, ".", "#m_feiyang-invoke", true)
+    local cards = player.room:askForDiscard(player, 2, 2, false, self.name, true, ".", "#m_feiyang-invoke", true)
     if #cards == 2 then
       self.cost_data = cards
       return true
