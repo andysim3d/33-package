@@ -25,7 +25,7 @@ local desc_brawl = [[
 
   胜利规则与身份局一致。
 
-  禁包、禁将之后其技能不会在技能池中出现。
+  *禁包、禁将之后其技能不会在技能池中出现。*
 ]]
 
 local ban_skills = {
@@ -42,8 +42,7 @@ local brawl_getLogic = function()
   end
 
   function brawl_logic:chooseGenerals()
-    local room = self.room
-    local generalNum = room.settings.generalNum
+    local room = self.room ---@type Room
     for _, p in ipairs(room.players) do
       p.role_shown = true
       room:broadcastProperty(p, "role")

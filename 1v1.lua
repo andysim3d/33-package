@@ -38,7 +38,7 @@ local m_1v1_getLogic = function()
   local m_1v1_logic = GameLogic:subclass("m_1v1_logic")
 
   function m_1v1_logic:chooseGenerals()
-    local room = self.room
+    local room = self.room ---@type Room
     local generalNum = 12
 
     local lord = room.players[1]
@@ -47,7 +47,7 @@ local m_1v1_getLogic = function()
 
     local lord_generals = {}
     local nonlord_generals = {}
-    local all_generals = table.map(Fk:getGeneralsRandomly(12), function(g) return g.name end)
+    local all_generals = room:getNGenerals(12)
     
     local function removeSame(t, n)
       local same = Fk:getSameGenerals(n)
@@ -184,6 +184,7 @@ local m_1v1_rule = fk.CreateTriggerSkill{
       local body = room:getPlayerById(data.who)
       local all_generals = room:getTag("1v1_generals")
       local generals = all_generals[body.seat]
+      local num = player:getMark("@1v1_fallen")
       body:bury()
 
       local current = room.logic:getCurrentEvent()
@@ -218,6 +219,7 @@ local m_1v1_rule = fk.CreateTriggerSkill{
         room:askForChooseKingdom({body})
         room:setPlayerProperty(body, "hp", Fk.generals[g].hp)
         room:setTag("1v1_generals", body.seat == 1 and {generals, all_generals[2]} or {all_generals[1], generals})
+        room:setPlayerMark(body, "@1v1_fallen", num + 1)
         drawInit(room, body, math.min(body.maxHp, 5))
         room.logic:trigger("fk.Debut", body, event, false)
       end)
@@ -253,6 +255,7 @@ Fk:loadTranslationTable{
   ["1v1 choose general"] = "请选择第一名出战的武将",
   ["1v1 score"] = "已阵亡武将数 先手 ",
   ["_1v1 score"] = " 后手",
+  ["@1v1_fallen"] = "已阵亡",
 
   [":m_1v1_mode"] = desc_1v1,
 }

@@ -29,7 +29,7 @@ local m_1v2_getLogic = function()
   end
 
   function m_1v2_logic:chooseGenerals()
-    local room = self.room
+    local room = self.room ---@type Room
     local generalNum = room.settings.generalNum
     for _, p in ipairs(room.players) do
       p.role_shown = true
