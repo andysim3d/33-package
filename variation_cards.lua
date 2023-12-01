@@ -234,6 +234,7 @@ Fk:loadTranslationTable{
   ["five_elements_fan"] = "五行鹤翎扇",
   ["five_elements_fan_skill"] = "五行扇",
   [":five_elements_fan"] = "装备牌·武器<br/><b>攻击范围</b>：4<br/><b>武器技能</b>：你可以将属性【杀】当任意其他属性【杀】使用。",
+  [":five_elements_fan_skill"] = "你可以将属性【杀】当任意其他属性【杀】使用。",
 }
 
 extension:addCards{
