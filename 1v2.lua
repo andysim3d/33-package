@@ -5,7 +5,7 @@ local desc_1v2 = [[
 
   总体规则类似身份局。游戏由三人进行，一人扮演地主（主公），其他两人扮演农民（反贼）。
 
-  地主增加一点体力上限和体力，且拥有以下额外技能：
+  地主选将框+2，增加一点体力上限和体力，且拥有以下额外技能：
 
   - **飞扬**：判定阶段开始时，你可以弃置两张手牌并弃置自己判定区内的一张牌。
 
@@ -39,9 +39,15 @@ local m_1v2_getLogic = function()
     local lord = room:getLord()
     room.current = lord
     local nonlord = room.players
-    local generals = room:getNGenerals(#nonlord * generalNum)
+    -- 地主多发俩武将
+    local generals = room:getNGenerals(#nonlord * generalNum + 2)
     for i, p in ipairs(nonlord) do
       local arg = table.slice(generals, (i - 1) * generalNum + 1, i * generalNum + 1)
+      if p.role == "lord" then
+        local count = #generals
+        table.insert(arg, generals[count])
+        table.insert(arg, generals[count - 1])
+      end
       p.request_data = json.encode({ arg, 1 })
       p.default_reply = arg[1]
     end
