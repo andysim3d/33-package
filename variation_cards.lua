@@ -2,7 +2,10 @@
 
 local extension = Package:new("variation_cards", Package.CardPack)
 extension.extensionName = "game_mode"
-extension.game_modes_blacklist = {"m_1v1_mode", "m_1v2_mode", "m_2v2_mode", "zombie_mode"}
+extension.game_modes_blacklist = {"m_1v1_mode", "m_1v2_mode", "m_2v2_mode"}
+
+local U = require "packages/utility/utility"
+
 Fk:loadTranslationTable{
   ["variation_cards"] = "应变",
 }
@@ -59,7 +62,7 @@ local IceDamageSkill = fk.CreateTriggerSkill{
   mute = true,
   events = {fk.DamageCaused},
   can_trigger = function(self, event, target, player, data)
-    return target == player and data.damageType == fk.IceDamage and not data.chain and not data.to:isNude()
+    return target == player and data.damageType == fk.IceDamage and not data.chain
   end,
   on_cost = function (self, event, target, player, data)
     return player.room:askForSkillInvoke(player, self.name, nil, "#ice_damage_skill-invoke::"..data.to.id)
@@ -159,6 +162,256 @@ extension:addCards{
   Fk:cloneCard("analeptic", Card.Spade, 9),
   Fk:cloneCard("analeptic", Card.Club, 3),
   Fk:cloneCard("analeptic", Card.Club, 9),
+}
+
+extension:addCards{
+  Fk:cloneCard("snatch", Card.Diamond, 3),
+  Fk:cloneCard("snatch", Card.Diamond, 4),
+  Fk:cloneCard("snatch", Card.Spade, 11),
+  Fk:cloneCard("dismantlement", Card.Heart, 12),
+  Fk:cloneCard("dismantlement", Card.Spade, 4),
+  Fk:cloneCard("dismantlement", Card.Heart, 2),
+  Fk:cloneCard("amazing_grace", Card.Heart, 3),
+  Fk:cloneCard("amazing_grace", Card.Heart, 4),
+  Fk:cloneCard("duel", Card.Diamond, 1),
+  Fk:cloneCard("duel", Card.Spade, 1),
+  Fk:cloneCard("duel", Card.Club, 1),
+  Fk:cloneCard("savage_assault", Card.Spade, 13),
+  Fk:cloneCard("savage_assault", Card.Spade, 7),
+  Fk:cloneCard("savage_assault", Card.Club, 7),
+  Fk:cloneCard("archery_attack", Card.Heart, 1),
+  Fk:cloneCard("lightning", Card.Heart, 12),
+  Fk:cloneCard("god_salvation", Card.Heart, 1),
+  Fk:cloneCard("nullification", Card.Club, 12),
+  Fk:cloneCard("nullification", Card.Club, 13),
+  Fk:cloneCard("nullification", Card.Spade, 11),
+  Fk:cloneCard("nullification", Card.Diamond, 12),
+  Fk:cloneCard("nullification", Card.Heart, 1),
+  Fk:cloneCard("nullification", Card.Spade, 13),
+  Fk:cloneCard("nullification", Card.Heart, 13),
+  Fk:cloneCard("indulgence", Card.Heart, 6),
+  Fk:cloneCard("indulgence", Card.Club, 6),
+  Fk:cloneCard("indulgence", Card.Spade, 6),
+  Fk:cloneCard("iron_chain", Card.Spade, 11),
+  Fk:cloneCard("iron_chain", Card.Spade, 12),
+  Fk:cloneCard("iron_chain", Card.Club, 10),
+  Fk:cloneCard("iron_chain", Card.Club, 11),
+  Fk:cloneCard("iron_chain", Card.Club, 12),
+  Fk:cloneCard("iron_chain", Card.Club, 13),
+  Fk:cloneCard("supply_shortage", Card.Spade, 10),
+  Fk:cloneCard("supply_shortage", Card.Club, 4),
+}
+
+local drowningSkill = fk.CreateActiveSkill{
+  name = "drowning_skill",
+  target_num = 1,
+  mod_target_filter = function(self, to_select, selected, user, card, distance_limited)
+    return to_select ~= user
+  end,
+  target_filter = function(self, to_select, selected)
+    return to_select ~= Self.id
+  end,
+  on_effect = function(self, room, effect)
+    local from = room:getPlayerById(effect.from)
+    local to = room:getPlayerById(effect.to)
+    if #to.player_cards[Player.Equip] == 0 then
+      room:damage({
+        from = from,
+        to = to,
+        card = effect.card,
+        damage = 1,
+        damageType = fk.ThunderDamage,
+        skillName = self.name
+      })
+    else
+      if room:askForSkillInvoke(to, self.name, nil, "#drowning-discard::"..from.id) then
+        to:throwAllCards("e")
+      else
+        room:damage({
+          from = from,
+          to = to,
+          card = effect.card,
+          damage = 1,
+          damageType = fk.ThunderDamage,
+          skillName = self.name
+        })
+
+      end
+    end
+  end
+}
+local drowning = fk.CreateTrickCard{
+  name = "drowning",
+  skill = drowningSkill,
+  is_damage_card = true,
+}
+extension:addCards({
+  drowning:clone(Card.Spade, 3),
+  drowning:clone(Card.Spade, 4),
+})
+Fk:loadTranslationTable{
+  ["drowning"] = "水淹七军",
+  ["drowning_skill"] = "水淹七军",
+  [":drowning"] = "锦囊牌<br/><b>时机</b>：出牌阶段<br/><b>目标</b>：一名其他角色<br /><b>效果</b>：目标角色选择一项："..
+  "1.弃置装备区所有牌（至少一张）；2.你对其造成1点雷电伤害。",
+  ["#drowning-discard"] = "水淹七军：“确定”弃置装备区所有牌，或点“取消” %dest 对你造成1点雷电伤害",
+}
+
+local unexpectationSkill = fk.CreateActiveSkill{
+  name = "unexpectation_skill",
+  target_num = 1,
+  mod_target_filter = function(self, to_select, selected, user, card, distance_limited)
+    return to_select ~= user and not Fk:currentRoom():getPlayerById(to_select):isKongcheng()
+  end,
+  target_filter = function(self, to_select)
+    return to_select ~= Self.id and not Fk:currentRoom():getPlayerById(to_select):isKongcheng()
+  end,
+  on_effect = function(self, room, effect)
+    local player = room:getPlayerById(effect.from)
+    local target = room:getPlayerById(effect.to)
+    if target:isKongcheng() then return end
+    local card = room:askForCardChosen(player, target, "h", self.name)
+    target:showCards(card)
+    card = Fk:getCardById(card)
+    if target.dead or card.suit == Card.NoSuit or effect.card.suit == Card.NoSuit then return end
+    if card.suit ~= effect.card.suit then
+      room:damage({
+        from = player,
+        to = target,
+        card = effect.card,
+        damage = 1,
+        skillName = self.name
+      })
+    end
+  end,
+}
+local unexpectation = fk.CreateTrickCard{
+  name = "unexpectation",
+  skill = unexpectationSkill,
+  is_damage_card = true,
+}
+extension:addCards{
+  unexpectation:clone(Card.Heart, 3),
+  unexpectation:clone(Card.Diamond, 11),
+}
+Fk:loadTranslationTable{
+  ["unexpectation"] = "出其不意",
+  ["unexpectation_skill"] = "出其不意",
+  [":unexpectation"] = "锦囊牌<br/><b>时机</b>：出牌阶段<br/><b>目标</b>：一名有手牌的其他角色<br/><b>效果</b>：你展示目标角色的一张手牌，"..
+  "若该牌与此【出其不意】花色不同，你对其造成1点伤害。",
+}
+
+local adaptationSkill = fk.CreateActiveSkill{
+  name = "adaptation_skill",
+  can_use = Util.FalseFunc,
+}
+local adaptationTriggerSkill = fk.CreateTriggerSkill{
+  name = "adaptation_trigger_skill",
+  global = true,
+
+  refresh_events = {fk.PreCardUse, fk.PreCardRespond},
+  can_refresh = function(self, event, target, player, data)
+    return target == player and (data.card.type == Card.TypeBasic or data.card:isCommonTrick())
+  end,
+  on_refresh = function(self, event, target, player, data)
+    player.room:setPlayerMark(player, "adaptation-turn", data.card.name)
+  end,
+}
+local adaptationFilterSkill = fk.CreateFilterSkill{
+  name = "adaptation_filter_skill",
+  mute = true,
+  global = true,
+  card_filter = function(self, card, player)
+    return card.name == "adaptation" and player:getMark("adaptation-turn") ~= 0
+  end,
+  view_as = function(self, card, player)
+    return Fk:cloneCard(player:getMark("adaptation-turn"), card.suit, card.number)
+  end,
+}
+local adaptation = fk.CreateTrickCard{
+  name = "adaptation",
+  skill = adaptationSkill,
+}
+Fk:addSkill(adaptationTriggerSkill)
+Fk:addSkill(adaptationFilterSkill)
+extension:addCards{
+  adaptation:clone(Card.Spade, 2),
+}
+Fk:loadTranslationTable{
+  ["adaptation"] = "随机应变",
+  ["adaptation_filter_skill"] = "随机应变",
+  [":adaptation"] = "锦囊牌<br/><b>效果</b>：此牌视为你本回合使用或打出的上一张基本牌或普通锦囊牌。",
+}
+
+local foresightSkill = fk.CreateActiveSkill{
+  name = "foresight_skill",
+  mod_target_filter = function(self, to_select, selected, user, card, distance_limited)
+    return true
+  end,
+  on_use = function(self, room, cardUseEvent)
+    if not cardUseEvent.tos or #TargetGroup:getRealTargets(cardUseEvent.tos) == 0 then
+      cardUseEvent.tos = {{cardUseEvent.from}}
+    end
+  end,
+  on_effect = function(self, room, effect)
+    local to = room:getPlayerById(effect.to)
+    room:askForGuanxing(to, room:getNCards(2), nil, nil)
+    room:drawCards(to, 2, self.name)
+  end
+}
+local foresight = fk.CreateTrickCard{
+  name = "foresight",
+  skill = foresightSkill,
+}
+extension:addCards({
+  foresight:clone(Card.Heart, 7),
+  foresight:clone(Card.Heart, 8),
+  foresight:clone(Card.Heart, 9),
+  foresight:clone(Card.Heart, 11),
+})
+Fk:loadTranslationTable{
+  ["foresight"] = "洞烛先机",
+  ["foresight_skill"] = "洞烛先机",
+  [":foresight"] = "锦囊牌<br/><b>时机</b>：出牌阶段<br/><b>目标</b>：你<br/><b>效果</b>：目标角色卜算2（观看牌堆顶的两张牌，"..
+  "将其中任意张以任意顺序置于牌堆顶，其余以任意顺序置于牌堆底），然后摸两张牌。",
+}
+
+local chasingNearSkill = fk.CreateActiveSkill{
+  name = "chasing_near_skill",
+  target_num = 1,
+  mod_target_filter = function(self, to_select, selected, user, card, distance_limited)
+    return to_select ~= user and not Fk:currentRoom():getPlayerById(to_select):isAllNude()
+  end,
+  target_filter = function(self, to_select, selected)
+    return to_select ~= Self.id and not Fk:currentRoom():getPlayerById(to_select):isAllNude()
+  end,
+  on_effect = function(self, room, effect)
+    local from = room:getPlayerById(effect.from)
+    local to = room:getPlayerById(effect.to)
+    if to:isAllNude() then return end
+    local id = room:askForCardChosen(from, to, "hej", self.name)
+    if from:distanceTo(to) > 1 then
+      room:throwCard({id}, self.name, to, from)
+    elseif from:distanceTo(to) == 1 then
+      room:obtainCard(from, id, false, fk.ReasonPrey)
+    end
+  end
+}
+local chasing_near = fk.CreateTrickCard{
+  name = "chasing_near",
+  skill = chasingNearSkill,
+}
+extension:addCards({
+  chasing_near:clone(Card.Spade, 3),
+  chasing_near:clone(Card.Spade, 12),
+  chasing_near:clone(Card.Club, 3),
+  chasing_near:clone(Card.Club, 4),
+})
+Fk:loadTranslationTable{
+  ["chasing_near"] = "逐近弃远",
+  ["chasing_near_skill"] = "逐近弃远",
+  [":chasing_near"] = "锦囊牌<br/><b>时机</b>：出牌阶段<br/><b>目标</b>：一名区域里有牌的其他角色<br/><b>效果</b>：若你与目标角色距离为1，"..
+  "你获得其区域里一张牌；若你与目标角色距离大于1，你弃置其区域里一张牌。",
 }
 
 extension:addCards{
@@ -426,8 +679,33 @@ Fk:loadTranslationTable{
   ["#taigong_tactics-choose"] = "太公阴符：你可以横置或重置一名角色",
   ["#taigong_tactics-invoke"] = "太公阴符：你可以重铸一张手牌",
 }
---♣K 铜雀
---你每回合使用的第一张带有强化效果的牌无使用条件。
+
+local bronzeSparrowSkill = fk.CreateTriggerSkill{
+  name = "#bronze_sparrow_skill",
+  mute = true,
+  frequency = Skill.Compulsory,
+  events = {fk.AfterCardUseDeclared},
+  can_trigger = function(self, event, target, player, data)
+    return target == player and player:hasSkill(self) and
+      table.find({"@fujia", "@kongchao", "@canqu", "@zhuzhan"}, function(mark) return data.card:getMark(mark) ~= 0 end)
+  end,
+  on_use = function(self, event, target, player, data)
+    data.extra_data = data.extra_data or {}
+    data.extra_data.variation = true
+  end,
+}
+Fk:addSkill(bronzeSparrowSkill)
+local bronzeSparrow = fk.CreateTreasure{
+  name = "bronze_sparrow",
+  suit = Card.Club,
+  number = 13,
+  equip_skill = bronzeSparrowSkill,
+}
+extension:addCard(bronzeSparrow)
+Fk:loadTranslationTable{
+  ["bronze_sparrow"] = "铜雀",
+  [":bronze_sparrow"] = "装备牌·宝物<br/><b>宝物技能</b>：锁定技，你使用具有应变效果的牌无需强化条件直接发动应变效果。",
+}
 
 extension:addCards{
   Fk:cloneCard("chitu", Card.Heart, 5),
@@ -439,296 +717,187 @@ extension:addCards{
   Fk:cloneCard("hualiu", Card.Diamond, 13),
 }
 
-extension:addCards{
-  Fk:cloneCard("snatch", Card.Diamond, 3),
-  Fk:cloneCard("snatch", Card.Diamond, 4),
-  Fk:cloneCard("snatch", Card.Spade, 11),
-  Fk:cloneCard("dismantlement", Card.Heart, 12),
-  Fk:cloneCard("dismantlement", Card.Spade, 4),
-  Fk:cloneCard("dismantlement", Card.Heart, 2),
-  Fk:cloneCard("amazing_grace", Card.Heart, 3),
-  Fk:cloneCard("amazing_grace", Card.Heart, 4),
-  Fk:cloneCard("duel", Card.Diamond, 1),
-  Fk:cloneCard("duel", Card.Spade, 1),
-  Fk:cloneCard("duel", Card.Club, 1),
-  Fk:cloneCard("savage_assault", Card.Spade, 13),
-  Fk:cloneCard("savage_assault", Card.Spade, 7),
-  Fk:cloneCard("savage_assault", Card.Club, 7),
-  Fk:cloneCard("archery_attack", Card.Heart, 1),
-  Fk:cloneCard("lightning", Card.Heart, 12),
-  Fk:cloneCard("god_salvation", Card.Heart, 1),
-  Fk:cloneCard("nullification", Card.Club, 12),
-  Fk:cloneCard("nullification", Card.Club, 13),
-  Fk:cloneCard("nullification", Card.Spade, 11),
-  Fk:cloneCard("nullification", Card.Diamond, 12),
-  Fk:cloneCard("nullification", Card.Heart, 1),
-  Fk:cloneCard("nullification", Card.Spade, 13),
-  Fk:cloneCard("nullification", Card.Heart, 13),
-  Fk:cloneCard("indulgence", Card.Heart, 6),
-  Fk:cloneCard("indulgence", Card.Club, 6),
-  Fk:cloneCard("indulgence", Card.Spade, 6),
-  Fk:cloneCard("iron_chain", Card.Spade, 11),
-  Fk:cloneCard("iron_chain", Card.Spade, 12),
-  Fk:cloneCard("iron_chain", Card.Club, 10),
-  Fk:cloneCard("iron_chain", Card.Club, 11),
-  Fk:cloneCard("iron_chain", Card.Club, 12),
-  Fk:cloneCard("iron_chain", Card.Club, 13),
-  Fk:cloneCard("supply_shortage", Card.Spade, 10),
-  Fk:cloneCard("supply_shortage", Card.Club, 4),
-}
-
-local drowningSkill = fk.CreateActiveSkill{
-  name = "drowning_skill",
-  target_num = 1,
-  mod_target_filter = function(self, to_select, selected, user, card, distance_limited)
-    return to_select ~= user
-  end,
-  target_filter = function(self, to_select, selected)
-    return to_select ~= Self.id
-  end,
-  on_effect = function(self, room, effect)
-    local from = room:getPlayerById(effect.from)
-    local to = room:getPlayerById(effect.to)
-    if #to.player_cards[Player.Equip] == 0 then
-      room:damage({
-        from = from,
-        to = to,
-        card = effect.card,
-        damage = 1,
-        damageType = fk.ThunderDamage,
-        skillName = self.name
-      })
-    else
-      if room:askForSkillInvoke(to, self.name, nil, "#drowning-discard::"..from.id) then
-        to:throwAllCards("e")
-      else
-        room:damage({
-          from = from,
-          to = to,
-          card = effect.card,
-          damage = 1,
-          damageType = fk.ThunderDamage,
-          skillName = self.name
-        })
-
-      end
-    end
-  end
-}
-local drowning = fk.CreateTrickCard{
-  name = "drowning",
-  skill = drowningSkill,
-  is_damage_card = true,
-}
-extension:addCards({
-  drowning:clone(Card.Spade, 3),
-  drowning:clone(Card.Spade, 4),
-})
-Fk:loadTranslationTable{
-  ["drowning"] = "水淹七军",
-  ["drowning_skill"] = "水淹七军",
-  [":drowning"] = "锦囊牌<br/><b>时机</b>：出牌阶段<br/><b>目标</b>：一名其他角色<br /><b>效果</b>：目标角色选择一项："..
-  "1.弃置装备区所有牌（至少一张）；2.你对其造成1点雷电伤害。",
-  ["#drowning-discard"] = "水淹七军：“确定”弃置装备区所有牌，或点“取消” %dest 对你造成1点雷电伤害",
-}
-
-local unexpectationSkill = fk.CreateActiveSkill{
-  name = "unexpectation_skill",
-  target_num = 1,
-  mod_target_filter = function(self, to_select, selected, user, card, distance_limited)
-    return to_select ~= user and not Fk:currentRoom():getPlayerById(to_select):isKongcheng()
-  end,
-  target_filter = function(self, to_select)
-    return to_select ~= Self.id and not Fk:currentRoom():getPlayerById(to_select):isKongcheng()
-  end,
-  on_effect = function(self, room, effect)
-    local player = room:getPlayerById(effect.from)
-    local target = room:getPlayerById(effect.to)
-    if target:isKongcheng() then return end
-    local card = room:askForCardChosen(player, target, "h", self.name)
-    target:showCards(card)
-    card = Fk:getCardById(card)
-    if target.dead or card.suit == Card.NoSuit or effect.card.suit == Card.NoSuit then return end
-    if card.suit ~= effect.card.suit then
-      room:damage({
-        from = player,
-        to = target,
-        card = effect.card,
-        damage = 1,
-        skillName = self.name
-      })
-    end
-  end,
-}
-local unexpectation = fk.CreateTrickCard{
-  name = "unexpectation",
-  skill = unexpectationSkill,
-  is_damage_card = true,
-}
-extension:addCards{
-  unexpectation:clone(Card.Heart, 3),
-  unexpectation:clone(Card.Diamond, 11),
-}
-Fk:loadTranslationTable{
-  ["unexpectation"] = "出其不意",
-  ["unexpectation_skill"] = "出其不意",
-  [":unexpectation"] = "锦囊牌<br/><b>时机</b>：出牌阶段<br/><b>目标</b>：一名有手牌的其他角色<br/><b>效果</b>：你展示目标角色的一张手牌，"..
-  "若该牌与此【出其不意】花色不同，你对其造成1点伤害。",
-}
-
-local adaptationSkill = fk.CreateActiveSkill{
-  name = "adaptation_skill",
-  can_use = function()
-    return false
-  end,
-}
-local adaptationTriggerSkill = fk.CreateTriggerSkill{
-  name = "adaptation_trigger_skill",
+local variation_rule = fk.CreateTriggerSkill{
+  name = "#variation_rule",
+  priority = 0.001,
   global = true,
-
-  refresh_events = {fk.AfterCardsMove, fk.CardUsing, fk.CardResponding, fk.TurnEnd},
-  can_refresh = function(self, event, target, player, data)
-    if event == fk.AfterCardsMove then
-      for _, move in ipairs(data) do
-        if move.toArea == Card.PlayerHand and move.to == player.id then
-          return true
+  mute = true,
+  events = {fk.AfterCardUseDeclared, fk.AfterCardTargetDeclared, fk.CardUsing},
+  can_trigger = function (self, event, target, player, data)
+    if target == player and not player.dead then
+      if event == fk.AfterCardUseDeclared then
+        if data.card:getMark("@fujia") ~= 0 then
+          return table.every(player.room:getOtherPlayers(player), function(p)
+            return player:getHandcardNum() >= p:getHandcardNum()
+          end)
+        elseif data.card:getMark("@kongchao") ~= 0 then
+          return player:isKongcheng()
+        elseif data.card:getMark("@canqu") ~= 0 then
+          return player.hp == 1
+        elseif data.card:getMark("@zhuzhan") ~= 0 then
+          return table.find(player.room:getOtherPlayers(player), function(p) return not p:isKongcheng() end)
         end
-      end
-    else
-      if target == player then
-        if event == fk.CardUsing or event == fk.CardResponding then
-          return (data.card.type == Card.TypeBasic or data.card:isCommonTrick()) and player.room.current and
-          table.find(player.player_cards[Player.Hand], function(id) return Fk:getCardById(id, true).trueName == "adaptation" end)
-        else
-          return true
+      elseif event == fk.AfterCardTargetDeclared then
+        if data.extra_data and data.extra_data.variation then
+          if table.find(data.card:getMarkNames(), function(name)
+            return data.card:getMark(name) == Fk:translate("variation_addtarget") end) then
+            return #U.getUseExtraTargets(player.room, data, false) > 0
+          end
+          if table.find(data.card:getMarkNames(), function(name)
+            return data.card:getMark(name) == Fk:translate("variation_minustarget") end) then
+            return #TargetGroup:getRealTargets(data.tos) > 1
+          end
         end
+      elseif event == fk.CardUsing then
+        return data.extra_data and data.extra_data.variation
       end
     end
   end,
-  on_refresh = function(self, event, target, player, data)
-    if event == fk.AfterCardsMove then
-      for _, move in ipairs(data) do
-        if move.toArea == Card.PlayerHand and move.to == player.id then
-          for _, info in ipairs(move.moveInfo) do
-            if Fk:getCardById(info.cardId, true).trueName == "adaptation" then
-              local events = player.room.logic:getEventsOfScope(GameEvent.UseCard, 999, function(e)
-                local use = e.data[1]
-                return use.from == player.id
-              end, Player.HistoryTurn)
+  on_cost = function (self, event, target, player, data)
+    if event == fk.AfterCardUseDeclared then
+      if data.card:getMark("@zhuzhan") ~= 0 then
+        local room = player.room
+        for _, p in ipairs(room:getOtherPlayers(player)) do
+          if not p:isKongcheng() and not table.contains(TargetGroup:getRealTargets(data.tos), p.id) then
+            local card = room:askForDiscard(p, 1, 1, true, "@zhuzhan", true, ".|.|.|.|.|"..data.card:getTypeString(),
+              "#zhuzhan-invoke:"..player.id.."::"..data.card:getTypeString()..":"..data.card:toLogString(), true)
+            if #card > 0 then
+              self.cost_data = {p, card}
+              return true
             end
           end
         end
+      else
+        return true
       end
-    elseif event == fk.CardUsing or event == fk.CardResponding then
-      for _, id in ipairs(player.player_cards[Player.Hand]) do
-        if Fk:getCardById(id, true).trueName == "adaptation" then
-          player.room:setCardMark(Fk:getCardById(id, true), "adaptation", data.card.name)
+    elseif event == fk.AfterCardTargetDeclared then
+      local room = player.room
+      if table.find(data.card:getMarkNames(), function(name)
+        return data.card:getMark(name) == Fk:translate("variation_addtarget") end) then
+          local tos = room:askForChoosePlayers(player, U.getUseExtraTargets(room, data, false), 1, 1,
+            "#variation_addtarget:::"..data.card:toLogString(), "variation", true)
+          if #tos > 0 then
+            self.cost_data = tos
+            return true
+          end
+      end
+      if table.find(data.card:getMarkNames(), function(name)
+        return data.card:getMark(name) == Fk:translate("variation_minustarget") end) then
+        local tos = room:askForChoosePlayers(player, TargetGroup:getRealTargets(data.tos), 1, 1,
+          "#variation_minustarget:::"..data.card:toLogString(), "variation", true)
+        if #tos > 0 then
+          self.cost_data = tos
+          return true
         end
       end
-    else
-      for _, id in ipairs(Fk:getAllCardIds()) do
-        if Fk:getCardById(id, true).trueName == "adaptation" then
-          player.room:setCardMark(Fk:getCardById(id, true), "adaptation", 0)
+    elseif event == fk.CardUsing then
+      return true
+    end
+  end,
+  on_use = function (self, event, target, player, data)
+    if event == fk.AfterCardUseDeclared then
+      if data.card:getMark("@zhuzhan") ~= 0 then
+        player.room:throwCard(self.cost_data[2], "variation", self.cost_data[1], self.cost_data[1])
+      end
+      data.extra_data = data.extra_data or {}
+      data.extra_data.variation = true
+    elseif event == fk.AfterCardTargetDeclared then
+      if table.contains(TargetGroup:getRealTargets(data.tos), self.cost_data[1]) then
+        TargetGroup:removeTarget(data.tos, self.cost_data[1])
+      else
+        table.insert(data.tos, self.cost_data)
+      end
+    elseif event == fk.CardUsing then
+      if table.find(data.card:getMarkNames(), function(name)
+        return data.card:getMark(name) == Fk:translate("variation_disresponsive") end) then
+        data.disresponsiveList = table.map(player.room.alive_players, Util.IdMapper)
+      end
+      if table.find(data.card:getMarkNames(), function(name)
+        return data.card:getMark(name) == Fk:translate("variation_draw") end) then
+        player:drawCards(1)
+      end
+      if table.find(data.card:getMarkNames(), function(name)
+        return data.card:getMark(name) == Fk:translate("variation_damage") end) then
+        data.additionalDamage = (data.additionalDamage or 0) + 1
+      end
+      if table.find(data.card:getMarkNames(), function(name)
+        return data.card:getMark(name) == Fk:translate("variation_cancel") end) then
+        local room = player.room
+        if data.responseToEvent and data.toCard and room:getCardArea(data.card) == Card.Processing then
+          room:obtainCard(player, data.toCard, true, fk.ReasonJustMove)
+        end
+      end
+    end
+  end,
+
+  refresh_events = {fk.GamePrepared},
+  can_refresh = function(self, event, target, player, data)
+    return not table.contains(player.room.disabled_packs, "variation_cards")
+  end,
+  on_refresh = function(self, event, target, player, data)
+    local room = player.room
+    for _, card in ipairs(Fk.packages["variation_cards"].cards) do
+      if table.contains({"amazing_grace", "archery_attack", "savage_assault"}, card.name) then
+        room:setCardMark(card, "@fujia", Fk:translate("variation_minustarget"))
+      elseif card.name == "slash" then
+        if table.contains({2, 3, 4}, card.number) then
+          room:setCardMark(card, "@kongchao",  Fk:translate("variation_addtarget"))
+        elseif card.number == 8 and card.suit == Card.Diamond then
+          room:setCardMark(card, "@canqu", Fk:translate("variation_disresponsive"))
+        elseif card.number == 9 and card.suit == Card.Spade then
+          room:setCardMark(card, "@canqu", Fk:translate("variation_addtarget"))
+        elseif card.number == 10 and card.suit == Card.Spade then
+          room:setCardMark(card, "@zhuzhan", Fk:translate("variation_addtarget"))
+        elseif card.number == 11 and card.suit == Card.Spade then
+          room:setCardMark(card, "@canqu", Fk:translate("variation_addtarget"))
+        end
+      elseif card.name == "fire__slash" then
+        if card.number == 4 and card.suit == Card.Diamond then
+          room:setCardMark(card, "@kongchao", Fk:translate("variation_damage"))
+        elseif card.number == 10 and card.suit == Card.Heart then
+          room:setCardMark(card, "@kongchao", Fk:translate("variation_damage"))
+        end
+      elseif card.name == "jink" then
+        if card.number == 2 then
+          room:setCardMark(card, "@kongchao", Fk:translate("variation_draw"))
+        elseif card.number == 4 then
+          room:setCardMark(card, "@canqu", Fk:translate("variation_cancel"))
+        end
+      elseif card.name == "chasing_near" then
+        if card.suit == Card.Club then
+          room:setCardMark(card, "@zhuzhan", Fk:translate("variation_addtarget"))
+        elseif card.number == 12 then
+          room:setCardMark(card, "@fujia", Fk:translate("variation_disresponsive"))
+        end
+      elseif card.name == "drowning" then
+        room:setCardMark(card, "@zhuzhan", Fk:translate("variation_addtarget"))
+      elseif card.name == "nullification" and card.number == 13 then
+        if card.suit == Card.Heart then
+          room:setCardMark(card, "@kongchao", Fk:translate("variation_cancel"))
+        elseif card.suit == Card.Spade then
+          room:setCardMark(card, "@kongchao", Fk:translate("variation_draw"))
+        elseif card.suit == Card.Club then
+          room:setCardMark(card, "@canqu", Fk:translate("variation_draw"))
         end
       end
     end
   end,
 }
-local adaptationFilterSkill = fk.CreateFilterSkill{
-  name = "adaptation_filter_skill",
-  mute = true,
-  global = true,
-  card_filter = function(self, card, player)
-    return card:getMark("adaptation") ~= 0
-  end,
-  view_as = function(self, card)
-    return Fk:cloneCard(card:getMark("adaptation"), card.suit, card.number)
-  end,
-}
-local adaptation = fk.CreateTrickCard{
-  name = "adaptation",
-  skill = adaptationSkill,
-}
---Fk:addSkill(adaptationTriggerSkill)
---Fk:addSkill(adaptationFilterSkill)
-extension:addCards{
-  --adaptation:clone(Card.Spade, 2),
-}
+Fk:addSkill(variation_rule)
 Fk:loadTranslationTable{
-  ["adaptation"] = "随机应变",
-  ["adaptation_filter_skill"] = "随机应变",
-  [":adaptation"] = "锦囊牌<br/><b>效果</b>：此牌视为你本回合使用或打出的上一张基本牌或普通锦囊牌。",
-}
-
-local foresightSkill = fk.CreateActiveSkill{
-  name = "foresight_skill",
-  mod_target_filter = function(self, to_select, selected, user, card, distance_limited)
-    return true
-  end,
-  on_use = function(self, room, cardUseEvent)
-    if not cardUseEvent.tos or #TargetGroup:getRealTargets(cardUseEvent.tos) == 0 then
-      cardUseEvent.tos = {{cardUseEvent.from}}
-    end
-  end,
-  on_effect = function(self, room, effect)
-    local to = room:getPlayerById(effect.to)
-    room:askForGuanxing(to, room:getNCards(2), nil, nil)
-    room:drawCards(to, 2, self.name)
-  end
-}
-local foresight = fk.CreateTrickCard{
-  name = "foresight",
-  skill = foresightSkill,
-}
-extension:addCards({
-  foresight:clone(Card.Heart, 7),
-  foresight:clone(Card.Heart, 8),
-  foresight:clone(Card.Heart, 9),
-  foresight:clone(Card.Heart, 11),
-})
-Fk:loadTranslationTable{
-  ["foresight"] = "洞烛先机",
-  ["foresight_skill"] = "洞烛先机",
-  [":foresight"] = "锦囊牌<br/><b>时机</b>：出牌阶段<br/><b>目标</b>：你<br/><b>效果</b>：目标角色卜算2（观看牌堆顶的两张牌，"..
-  "将其中任意张以任意顺序置于牌堆顶，其余以任意顺序置于牌堆底），然后摸两张牌。",
-}
-
-local chasingNearSkill = fk.CreateActiveSkill{
-  name = "chasing_near_skill",
-  target_num = 1,
-  mod_target_filter = function(self, to_select, selected, user, card, distance_limited)
-    return to_select ~= user and not Fk:currentRoom():getPlayerById(to_select):isAllNude()
-  end,
-  target_filter = function(self, to_select, selected)
-    return to_select ~= Self.id and not Fk:currentRoom():getPlayerById(to_select):isAllNude()
-  end,
-  on_effect = function(self, room, effect)
-    local from = room:getPlayerById(effect.from)
-    local to = room:getPlayerById(effect.to)
-    if to:isAllNude() then return end
-    local id = room:askForCardChosen(from, to, "hej", self.name)
-    if from:distanceTo(to) > 1 then
-      room:throwCard({id}, self.name, to, from)
-    elseif from:distanceTo(to) == 1 then
-      room:obtainCard(from, id, false, fk.ReasonPrey)
-    end
-  end
-}
-local chasing_near = fk.CreateTrickCard{
-  name = "chasing_near",
-  skill = chasingNearSkill,
-}
-extension:addCards({
-  chasing_near:clone(Card.Spade, 3),
-  chasing_near:clone(Card.Spade, 12),
-  chasing_near:clone(Card.Club, 3),
-  chasing_near:clone(Card.Club, 4),
-})
-Fk:loadTranslationTable{
-  ["chasing_near"] = "逐近弃远",
-  ["chasing_near_skill"] = "逐近弃远",
-  [":chasing_near"] = "锦囊牌<br/><b>时机</b>：出牌阶段<br/><b>目标</b>：一名区域里有牌的其他角色<br/><b>效果</b>：若你与目标角色距离为1，"..
-  "你获得其区域里一张牌；若你与目标角色距离大于1，你弃置其区域里一张牌。",
+  ["@fujia"] = "<font color='yellow'>富甲</font>",
+  ["@kongchao"] = "<font color='yellow'>空巢</font>",
+  ["@canqu"] = "<font color='yellow'>残躯</font>",
+  ["@zhuzhan"] = "<font color='yellow'>助战</font>",
+  ["variation_addtarget"] = "目标+1",
+  ["variation_minustarget"] = "目标-1",
+  ["variation_disresponsive"] = "不可响应",
+  ["variation_draw"] = "摸牌",
+  ["variation_damage"] = "伤害+1",
+  ["variation_cancel"] = "获得牌",
+  ["#zhuzhan-invoke"] = "助战：你可以弃置一张%arg，助战%src使用的%arg2可以额外指定一个目标",
+  ["#variation_addtarget"] = "为%arg额外指定一个目标",
+  ["#variation_minustarget"] = "为%arg减少一个目标",
 }
 
 return extension
