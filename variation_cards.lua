@@ -208,8 +208,10 @@ local drowningSkill = fk.CreateActiveSkill{
   mod_target_filter = function(self, to_select, selected, user, card, distance_limited)
     return to_select ~= user
   end,
-  target_filter = function(self, to_select, selected)
-    return to_select ~= Self.id
+  target_filter = function (self, to_select, selected, selected_cards, card)
+    if #selected < self:getMaxTargetNum(Self, card) then
+      return self:modTargetFilter(to_select, selected, Self.id, card)
+    end
   end,
   on_effect = function(self, room, effect)
     local from = room:getPlayerById(effect.from)
@@ -263,8 +265,10 @@ local unexpectationSkill = fk.CreateActiveSkill{
   mod_target_filter = function(self, to_select, selected, user, card, distance_limited)
     return to_select ~= user and not Fk:currentRoom():getPlayerById(to_select):isKongcheng()
   end,
-  target_filter = function(self, to_select)
-    return to_select ~= Self.id and not Fk:currentRoom():getPlayerById(to_select):isKongcheng()
+  target_filter = function(self, to_select, selected, selected_cards, card)
+    if #selected < self:getMaxTargetNum(Self, card) then
+      return self:modTargetFilter(to_select, selected, Self.id, card)
+    end
   end,
   on_effect = function(self, room, effect)
     local player = room:getPlayerById(effect.from)
@@ -348,6 +352,9 @@ local foresightSkill = fk.CreateActiveSkill{
   mod_target_filter = function(self, to_select, selected, user, card, distance_limited)
     return true
   end,
+  can_use = function(self, player, card)
+    return not player:isProhibited(player, card)
+  end,
   on_use = function(self, room, cardUseEvent)
     if not cardUseEvent.tos or #TargetGroup:getRealTargets(cardUseEvent.tos) == 0 then
       cardUseEvent.tos = {{cardUseEvent.from}}
@@ -382,8 +389,10 @@ local chasingNearSkill = fk.CreateActiveSkill{
   mod_target_filter = function(self, to_select, selected, user, card, distance_limited)
     return to_select ~= user and not Fk:currentRoom():getPlayerById(to_select):isAllNude()
   end,
-  target_filter = function(self, to_select, selected)
-    return to_select ~= Self.id and not Fk:currentRoom():getPlayerById(to_select):isAllNude()
+  target_filter = function(self, to_select, selected, selected_cards, card)
+    if #selected < self:getMaxTargetNum(Self, card) then
+      return self:modTargetFilter(to_select, selected, Self.id, card)
+    end
   end,
   on_effect = function(self, room, effect)
     local from = room:getPlayerById(effect.from)
@@ -684,12 +693,13 @@ local bronzeSparrowSkill = fk.CreateTriggerSkill{
   name = "#bronze_sparrow_skill",
   mute = true,
   frequency = Skill.Compulsory,
-  events = {fk.AfterCardUseDeclared},
-  can_trigger = function(self, event, target, player, data)
+
+  refresh_events = {fk.AfterCardUseDeclared},  --用refresh伪装为“状态技”
+  can_refresh = function(self, event, target, player, data)
     return target == player and player:hasSkill(self) and
       table.find({"@fujia", "@kongchao", "@canqu", "@zhuzhan"}, function(mark) return data.card:getMark(mark) ~= 0 end)
   end,
-  on_use = function(self, event, target, player, data)
+  on_refresh = function(self, event, target, player, data)
     data.extra_data = data.extra_data or {}
     data.extra_data.variation = true
   end,
@@ -726,6 +736,7 @@ local variation_rule = fk.CreateTriggerSkill{
   can_trigger = function (self, event, target, player, data)
     if target == player and not player.dead then
       if event == fk.AfterCardUseDeclared then
+        if data.extra_data and data.extra_data.variation then return end
         if data.card:getMark("@fujia") ~= 0 then
           return table.every(player.room:getOtherPlayers(player), function(p)
             return player:getHandcardNum() >= p:getHandcardNum()
