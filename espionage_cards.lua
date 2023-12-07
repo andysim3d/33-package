@@ -87,13 +87,86 @@ extension:addCards{
   Fk:cloneCard("peach", Card.Heart, 7),
   Fk:cloneCard("peach", Card.Heart, 8),
   Fk:cloneCard("peach", Card.Diamond, 11),--赠
+}
 
-  --[[Fk:cloneCard("poison", Card.Spade, 4),--赠
-  Fk:cloneCard("poison", Card.Spade, 5),--赠
-  Fk:cloneCard("poison", Card.Spade, 9),--赠
-  Fk:cloneCard("poison", Card.Spade, 10),--赠
-  Fk:cloneCard("poison", Card.Club, 4),]]--
+local poison_trigger = fk.CreateTriggerSkill{
+  name = "poison_trigger",
+  global = true,
+  priority = 0.1,
+  mute = true,
+  events = {fk.AfterCardsMove},
+  can_trigger = function(self, event, target, player, data)
+    for _, move in ipairs(data) do
+      if move.extra_data and move.extra_data.poison then
+        if table.contains(move.extra_data.poison, player.id) and not player.dead then
+          return true
+        end
+      end
+    end
+  end,
+  on_trigger = function(self, event, target, player, data)
+    local n = 0
+    for _, move in ipairs(data) do
+      if move.extra_data and move.extra_data.poison then
+        n = n + #table.filter(move.extra_data.poison, function(id) return id == player.id end)
+      end
+    end
+    for i = 1, n, 1 do
+      if not player.dead then
+        player.room:loseHp(player, 1, "es__poison")
+      end
+    end
+  end,
 
+  refresh_events = {fk.BeforeCardsMove},
+  can_refresh = function(self, event, target, player, data)
+    for _, move in ipairs(data) do
+      if move.from == player.id then
+        return true
+      end
+    end
+  end,
+  on_refresh = function(self, event, target, player, data)
+    for _, move in ipairs(data) do
+      if move.from == player.id and move.skillName ~= "es__poison" and move.skillName ~= "scrape_poison" then
+        for _, info in ipairs(move.moveInfo) do
+          if info.fromArea == Card.PlayerHand and (info.moveVisible or table.contains({2, 3, 5, 7}, move.toArea)) then
+            if Fk:getCardById(info.cardId).name == "es__poison" then
+              move.extra_data = move.extra_data or {}
+              local dat = move.extra_data.poison or {}
+              table.insert(dat, player.id)
+              move.extra_data.poison = dat
+            end
+          end
+        end
+      end
+    end
+  end,
+}
+Fk:addSkill(poison_trigger)
+local esPoisonSkill = fk.CreateActiveSkill{
+  name = "es__poison_skill",
+  can_use = Util.FalseFunc,
+}
+local es__poison = fk.CreateBasicCard{
+  name = "es__poison",
+  skill = esPoisonSkill,
+}
+Fk:addSkill(esPoisonSkill)
+extension:addCards({
+  es__poison:clone(Card.Spade, 4),--赠
+  es__poison:clone(Card.Spade, 5),--赠
+  es__poison:clone(Card.Spade, 9),--赠
+  es__poison:clone(Card.Spade, 10),--赠
+  es__poison:clone(Card.Club, 4),
+})
+Fk:loadTranslationTable{
+  ["es__poison"] = "毒",
+  [":es__poison"] = "基本牌<br/><b>效果</b>：①当【毒】正面向上离开你的手牌区或作为你的拼点牌亮出后，你失去1点体力。②当你因摸牌获得【毒】后，"..
+  "你可以将之交给一名其他角色，以此法失去【毒】时不触发失去体力效果。",
+}
+
+extension:addCards{
   Fk:cloneCard("snatch", Card.Spade, 3),--赠
 
   Fk:cloneCard("duel", Card.Diamond, 1),--赠
@@ -103,6 +176,92 @@ extension:addCards{
   Fk:cloneCard("nullification", Card.Club, 12),
 
   Fk:cloneCard("amazing_grace", Card.Heart, 3),--赠
+}
+
+local bogusFlowerSkill = fk.CreateActiveSkill{
+  name = "bogus_flower_skill",
+  mod_target_filter = Util.TrueFunc,
+  can_use = function(self, player, card)
+    return not player:isProhibited(player, card)
+  end,
+  on_use = function(self, room, cardUseEvent)
+    if not cardUseEvent.tos or #TargetGroup:getRealTargets(cardUseEvent.tos) == 0 then
+      cardUseEvent.tos = { { cardUseEvent.from } }
+    end
+  end,
+  on_effect = function(self, room, effect)
+    local target = room:getPlayerById(effect.to)
+    if target.dead or target:isNude() then return end
+    local cards = room:askForDiscard(target, 1, 2, true, "bogus_flower", false, ".", "#bogus_flower-discard", true)
+    if #cards == 0 then return end
+    local n = #cards
+    if table.find(cards, function(id) return Fk:getCardById(id).type == Card.TypeEquip end) then
+      n = n + 1
+    end
+    room:throwCard(cards, "bogus_flower", target, target)
+    if not target.dead then
+      target:drawCards(n, "bogus_flower")
+    end
+  end
+}
+local bogus_flower = fk.CreateTrickCard{
+  name = "bogus_flower",
+  skill = bogusFlowerSkill,
+}
+extension:addCards({
+  bogus_flower:clone(Card.Diamond, 3),
+  bogus_flower:clone(Card.Diamond, 4),
+})
+Fk:loadTranslationTable{
+  ["bogus_flower"] = "树上开花",
+  ["bogus_flower_skill"] = "树上开花",
+  [":bogus_flower"] = "锦囊牌<br/><b>时机</b>：出牌阶段<br/><b>目标</b>：你<br/><b>效果</b>：目标角色弃置至多两张牌，然后摸等量的牌；"..
+  "若弃置了装备牌，则多摸一张牌。",
+  ["#bogus_flower-discard"] = "树上开花：弃置一至两张牌，摸等量的牌，若弃置了装备牌则多摸一张",
+}
+
+local scrapePoisonSkill = fk.CreateActiveSkill{
+  name = "scrape_poison_skill",
+  target_num = 1,
+  mod_target_filter = function(self, to_select, selected, user, card)
+    return Fk:currentRoom():getPlayerById(to_select):isWounded()
+  end,
+  target_filter = function(self, to_select, selected, _, card)
+    if #selected < self:getMaxTargetNum(Self, card) then
+      return self:modTargetFilter(to_select, selected, Self.id, card)
+    end
+  end,
+  on_effect = function(self, room, effect)
+    local player = room:getPlayerById(effect.from)
+    local target = room:getPlayerById(effect.to)
+    if target:isWounded() and not target.dead then
+      room:recover({
+        who = target,
+        num = 1,
+        card = effect.card,
+        recoverBy = player,
+        skillName = self.name
+      })
+    end
+    if not target.dead and not target:isKongcheng() then
+      room:askForDiscard(target, 1, 1, false, "scrape_poison", true, "poison", "#scrape_poison-discard")
+    end
+  end
+}
+local scrape_poison = fk.CreateTrickCard{
+  name = "scrape_poison",
+  skill = scrapePoisonSkill,
+}
+extension:addCards({
+  scrape_poison:clone(Card.Spade, 1),
+  scrape_poison:clone(Card.Heart, 1),
+})
+Fk:loadTranslationTable{
+  ["scrape_poison"] = "刮骨疗毒",
+  ["scrape_poison_skill"] = "刮骨疗毒",
+  [":scrape_poison"] = "锦囊牌<br/><b>时机</b>：出牌阶段<br/><b>目标</b>：一名已受伤角色<br/><b>效果</b>：目标角色回复1点体力，然后其可以"..
+  "弃置一张【毒】，以此法失去【毒】时不触发失去体力效果。",
+  ["#scrape_poison-discard"] = "刮骨疗毒：你可以弃置一张【毒】（不触发失去体力效果）",
 }
 
 local snatch = Fk:cloneCard("snatch")
@@ -202,11 +361,254 @@ Fk:loadTranslationTable{
   ["#looting-give"] = "趁火打劫：点“确定”将此牌交给 %src ，或点“取消”其对你造成1点伤害",
 }
 
+local brokenHalberdSkill = fk.CreateAttackRangeSkill{
+  name = "#broken_halberd_skill",
+  attached_equip = "broken_halberd",
+  frequency = Skill.Compulsory,
+  correct_func = function(self, from, to)
+    if from:hasSkill(self) then
+      return -1
+    end
+    return 0
+  end,
+}
+Fk:addSkill(brokenHalberdSkill)
+local broken_halberd = fk.CreateWeapon{
+  name = "broken_halberd",
+  suit = Card.Club,
+  number = 1,
+  attack_range = 0,
+  equip_skill = brokenHalberdSkill,
+}
+extension:addCard(broken_halberd)
 Fk:loadTranslationTable{
-  ["bogus_flower"] = "树上开花",
-  ["bogus_flower_skill"] = "树上开花",
-  [":bogus_flower"] = "锦囊牌<br/><b>时机</b>：出牌阶段<br/><b>目标</b>：你<br/><b>效果</b>：目标角色弃置至多两张牌，然后摸等量的牌；"..
-  "若弃置了装备牌，则多摸一张牌。",
+  ["broken_halberd"] = "折戟",
+  [":broken_halberd"] = "装备牌·武器<br/><b>攻击范围</b>：0<br/>这是一把坏掉的武器……",
+}
+
+local sevenStarsPreciousSwordSkill = fk.CreateTriggerSkill{
+  name = "#seven_stars_precious_sword_skill",
+  attached_equip = "seven_stars_precious_sword",
+  frequency = Skill.Compulsory,
+}
+Fk:addSkill(sevenStarsPreciousSwordSkill)
+local seven_stars_precious_sword = fk.CreateWeapon{
+  name = "seven_stars_precious_sword",
+  suit = Card.Spade,
+  number = 2,
+  attack_range = 2,
+  equip_skill = sevenStarsPreciousSwordSkill,
+  on_install = function(self, room, player)
+    if player:isAlive() and self.equip_skill:isEffectable(player) then
+      local cards = player:getCardIds("ej")
+      table.removeOne(cards, player:getEquipment(Card.SubtypeWeapon))
+      room:throwCard(cards, "seven_stars_precious_sword", player, player)
+    end
+  end,
+}
+extension:addCard(seven_stars_precious_sword)
+Fk:loadTranslationTable{
+  ["seven_stars_precious_sword"] = "七星宝刀",
+  [":seven_stars_precious_sword"] = "装备牌·武器<br/><b>攻击范围</b>：2<br/><b>武器技能</b>：锁定技，当此牌进入你的装备区时，弃置你判定区和"..
+  "装备区内除此牌外所有的牌。",
+}
+
+local yitianSwordSkill = fk.CreateTriggerSkill{
+  name = "#yitian_sword_skill",
+  attached_equip = "yitian_sword",
+  events = {fk.Damage},
+  can_trigger = function(self, event, target, player, data)
+    return target == player and player:hasSkill(self) and data.card and data.card.trueName == "slash" and
+      not player:isKongcheng()
+  end,
+  on_cost = function(self, event, target, player, data)
+    local card = player.room:askForDiscard(player, 1, 1, false, self.name, true, ".", "#yitian_sword-invoke", true)
+    if #card > 0 then
+      self.cost_data = card
+      return true
+    end
+  end,
+  on_use = function(self, event, target, player, data)
+    local room = player.room
+    room:throwCard(self.cost_data, "yitian_sword", player, player)
+    if not player.dead and player:isWounded() then
+      room:recover({
+        who = player,
+        num = 1,
+        recoverBy = player,
+        skillName = "yitian_sword",
+      })
+    end
+  end,
+}
+Fk:addSkill(yitianSwordSkill)
+local yitian_sword = fk.CreateWeapon{
+  name = "yitian_sword",
+  suit = Card.Club,
+  number = 5,
+  attack_range = 2,
+  equip_skill = yitianSwordSkill,
+}
+extension:addCard(yitian_sword)
+Fk:loadTranslationTable{
+  ["yitian_sword"] = "倚天剑",
+  ["#yitian_sword_skill"] = "倚天剑",
+  [":yitian_sword"] = "装备牌·武器<br/><b>攻击范围</b>：2<br/><b>武器技能</b>：当你使用【杀】造成伤害后，你可以弃置一张手牌，然后回复1点体力。",
+  ["#yitian_sword-invoke"] = "倚天剑：你可以弃置一张手牌，回复1点体力",
+}
+
+local beeClothSkill = fk.CreateTriggerSkill{
+  name = "#bee_cloth_skill",
+  attached_equip = "bee_cloth",
+  anim_type = "negative",
+  frequency = Skill.Compulsory,
+  events = {fk.DamageInflicted, fk.PreHpLost},
+  can_trigger = function(self, event, target, player, data)
+    if target == player and player:hasSkill(self) then
+      if event == fk.DamageInflicted then
+        return data.card and data.card.type == Card.TypeTrick
+      elseif event == fk.PreHpLost then
+        return data.skillName == "es__poison"
+      end
+    end
+  end,
+  on_use = function(self, event, target, player, data)
+    if event == fk.DamageInflicted then
+      data.damage = data.damage + 1
+    elseif event == fk.PreHpLost then
+      data.num = data.num + 1
+    end
+  end,
+}
+Fk:addSkill(beeClothSkill)
+local bee_cloth = fk.CreateArmor{
+  name = "bee_cloth",
+  suit = Card.Club,
+  number = 3,
+  equip_skill = beeClothSkill,
+}
+extension:addCards{
+  bee_cloth,
+}
+Fk:loadTranslationTable{
+  ["bee_cloth"] = "引蜂衣",
+  ["#bee_cloth_skill"] = "引蜂衣",
+  [":bee_cloth"] = "装备牌·防具<br/><b>防具技能</b>：锁定技，你受到锦囊牌的伤害+1，因【毒】的效果失去体力+1。",
+}
+
+local womenDressSkill = fk.CreateTriggerSkill{
+  name = "#women_dress_skill",
+  attached_equip = "women_dress",
+  anim_type = "negative",
+  frequency = Skill.Compulsory,
+  events = {fk.TargetConfirmed},
+  can_trigger = function(self, event, target, player, data)
+    return target == player and player:hasSkill(self) and player.gender == General.Male and data.card.trueName == "slash"
+  end,
+  on_use = function(self, event, target, player, data)
+    local room = player.room
+    local judge = {
+      who = player,
+      reason = self.name,
+      pattern = ".|.|spade,club",
+    }
+    room:judge(judge)
+    if judge.card.color == Card.Black then
+      data.additionalDamage = (data.additionalDamage or 0) + 1
+    end
+  end,
+}
+Fk:addSkill(womenDressSkill)
+local women_dress = fk.CreateArmor{
+  name = "women_dress",
+  suit = Card.Heart,
+  number = 9,
+  equip_skill = womenDressSkill,
+}
+extension:addCards{
+  women_dress,
+}
+Fk:loadTranslationTable{
+  ["women_dress"] = "女装",
+  ["#women_dress_skill"] = "女装",
+  [":women_dress"] = "装备牌·防具<br/><b>防具技能</b>：锁定技，若你是男性角色，当你成为【杀】的目标后，你判定，若结果为黑色，此【杀】伤害+1。",
+}
+
+local elephant = fk.CreateDefensiveRide{
+  name = "elephant",
+  suit = Card.Heart,
+  number = 13,
+}
+extension:addCards({
+  elephant,
+})
+Fk:loadTranslationTable{
+  ["elephant"] = "战象",
+  [":elephant"] = "装备牌·坐骑<br/><b>坐骑技能</b>：锁定技，其他角色计算至你的距离+1，其他角色对你赠予时赠予失败。",
+}
+
+local inferiorHorseSkill = fk.CreateDistanceSkill{
+  name = "#inferior_horse_skill",
+  frequency = Skill.Compulsory,
+  fixed_func = function (self, from, to)
+    if to:hasSkill(self) then
+      return 1
+    end
+  end,
+}
+Fk:addSkill(inferiorHorseSkill)
+local inferior_horse = fk.CreateOffensiveRide{
+  name = "inferior_horse",
+  suit = Card.Club,
+  number = 13,
+  equip_skill = inferiorHorseSkill,
+}
+extension:addCards({
+  inferior_horse,
+})
+Fk:loadTranslationTable{
+  ["inferior_horse"] = "驽马",
+  [":inferior_horse"] = "装备牌·坐骑<br/><b>坐骑技能</b>：锁定技，你计算至其他角色的距离-1，其他角色计算至你的距离始终为1。",
+}
+
+local carrierPigeonSkill = fk.CreateActiveSkill{
+  name = "carrier_pigeon_skill&",
+  attached_equip = "carrier_pigeon",
+  anim_type = "support",
+  card_num = 1,
+  target_num = 1,
+  prompt = "#carrier_pigeon_skill",
+  can_use = function(self, player)
+    return not player:isKongcheng() and player:usedSkillTimes(self.name, Player.HistoryPhase) == 0
+  end,
+  card_filter = function(self, to_select, selected)
+    return #selected == 0 and Fk:currentRoom():getCardArea(to_select) == Player.Hand
+  end,
+  target_filter = function(self, to_select, selected, selected_cards)
+    return #selected == 0 and to_select ~= Self.id
+  end,
+  on_use = function(self, room, effect)
+    local player = room:getPlayerById(effect.from)
+    local target = room:getPlayerById(effect.tos[1])
+    room:moveCardTo(effect.cards[1], Card.PlayerHand, target, fk.ReasonGive, "carrier_pigeon", nil, false, player.id)
+  end,
+}
+Fk:addSkill(carrierPigeonSkill)
+local carrier_pigeon = fk.CreateTreasure{
+  name = "carrier_pigeon",
+  suit = Card.Heart,
+  number = 4,
+  equip_skill = carrierPigeonSkill,
+}
+extension:addCards({
+  carrier_pigeon,
+})
+Fk:loadTranslationTable{
+  ["carrier_pigeon"] = "信鸽",
+  ["carrier_pigeon_skill&"] = "信鸽",
+  [":carrier_pigeon"] = "装备牌·宝物<br/><b>宝物技能</b>：出牌阶段限一次，你可以将一张手牌交给一名其他角色。",
+  [":carrier_pigeon_skill&"] = "出牌阶段限一次，你可以将一张手牌交给一名其他角色",
+  ["#carrier_pigeon_skill"] = "信鸽：你可以将一张手牌交给一名其他角色",
 }
 
 return extension
