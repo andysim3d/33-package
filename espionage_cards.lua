@@ -7,12 +7,16 @@ Fk:loadTranslationTable{
   ["espionage_cards"] = "用间",
 }
 
-extension:addCards{
-  Fk:cloneCard("slash", Card.Heart, 5),--赠
-  Fk:cloneCard("slash", Card.Heart, 10),--赠
-  Fk:cloneCard("slash", Card.Heart, 11),--赠
-  Fk:cloneCard("slash", Card.Heart, 12),--赠
-}
+local PresentCards = {}
+local function addPreasentCard(c)
+  extension:addCard(c)
+  table.insert(PresentCards, c)
+end
+
+addPreasentCard(Fk:cloneCard("slash", Card.Heart, 5))
+addPreasentCard(Fk:cloneCard("slash", Card.Heart, 10))
+addPreasentCard(Fk:cloneCard("slash", Card.Heart, 11))
+addPreasentCard(Fk:cloneCard("slash", Card.Heart, 12))
 
 local slash = Fk:cloneCard("slash")
 local stabSlashSkill = fk.CreateActiveSkill{
@@ -75,19 +79,18 @@ Fk:loadTranslationTable{
   ["#stab__slash-discard"] = "请弃置一张手牌，否则%arg依然对你生效",
 }
 
+addPreasentCard(Fk:cloneCard("jink", Card.Heart, 2))
+addPreasentCard(Fk:cloneCard("jink", Card.Diamond, 2))
 extension:addCards{
-  Fk:cloneCard("jink", Card.Heart, 2),--赠
-  Fk:cloneCard("jink", Card.Diamond, 2),--赠
   Fk:cloneCard("jink", Card.Diamond, 5),
   Fk:cloneCard("jink", Card.Diamond, 6),
   Fk:cloneCard("jink", Card.Diamond, 7),
   Fk:cloneCard("jink", Card.Diamond, 8),
   Fk:cloneCard("jink", Card.Diamond, 12),
-
   Fk:cloneCard("peach", Card.Heart, 7),
   Fk:cloneCard("peach", Card.Heart, 8),
-  Fk:cloneCard("peach", Card.Diamond, 11),--赠
 }
+addPreasentCard(Fk:cloneCard("peach", Card.Diamond, 11))
 
 local poison_trigger = fk.CreateTriggerSkill{
   name = "poison_trigger",
@@ -102,13 +105,28 @@ local poison_trigger = fk.CreateTriggerSkill{
           return true
         end
       end
+      if move.to == player.id and move.toArea == Card.PlayerHand and move.moveReason == fk.ReasonDraw then
+        for _, info in ipairs(move.moveInfo) do
+          if Fk:getCardById(info.cardId).name == "es__poison" then
+            return true
+          end
+        end
+      end
     end
   end,
   on_trigger = function(self, event, target, player, data)
     local n = 0
+    local ids = {}
     for _, move in ipairs(data) do
       if move.extra_data and move.extra_data.poison then
         n = n + #table.filter(move.extra_data.poison, function(id) return id == player.id end)
+      end
+      if move.to == player.id and move.toArea == Card.PlayerHand then
+        for _, info in ipairs(move.moveInfo) do
+          if Fk:getCardById(info.cardId).name == "es__poison" then
+            table.insertIfNeed(ids, info.cardId)
+          end
+        end
       end
     end
     for i = 1, n, 1 do
@@ -116,6 +134,31 @@ local poison_trigger = fk.CreateTriggerSkill{
         player.room:loseHp(player, 1, "es__poison")
       end
     end
+    ids = table.filter(ids, function(id) return table.contains(player:getCardIds("h"), id) end)
+    while not player.dead and #ids > 0 do
+      ids = table.filter(ids, function(id) return table.contains(player:getCardIds("h"), id) end)
+      if #ids == 0 then break end
+      if not self:doCost(event, nil, player, ids) then
+        break
+      end
+    end
+  end,
+  on_cost = function(self, event, target, player, data)
+    local room = player.room
+    room:setPlayerMark(player, "es__poison-tmp", data)
+    local success, dat = room:askForUseActiveSkill(player, "es__poison_give", "#es__poison-give", true)
+    room:setPlayerMark(player, "es__poison-tmp", 0)
+    if success then
+      self.cost_data = dat
+      return true
+    end
+  end,
+  on_use = function(self, event, target, player, data)
+    local room = player.room
+    local to = room:getPlayerById(self.cost_data.targets[1])
+    local dummy = Fk:cloneCard("dilu")
+    dummy:addSubcards(self.cost_data.cards)
+    room:moveCardTo(dummy, Card.PlayerHand, to, fk.ReasonGive, "es__poison_give", nil, true, player.id)
   end,
 
   refresh_events = {fk.BeforeCardsMove},
@@ -128,9 +171,9 @@ local poison_trigger = fk.CreateTriggerSkill{
   end,
   on_refresh = function(self, event, target, player, data)
     for _, move in ipairs(data) do
-      if move.from == player.id and move.skillName ~= "es__poison" and move.skillName ~= "scrape_poison" then
+      if move.from == player.id and move.skillName ~= "es__poison_give" and move.skillName ~= "scrape_poison" then
         for _, info in ipairs(move.moveInfo) do
-          if info.fromArea == Card.PlayerHand and (info.moveVisible or table.contains({2, 3, 5, 7}, move.toArea)) then
+          if info.fromArea == Card.PlayerHand and (move.moveVisible or table.contains({2, 3, 5, 7}, move.toArea)) then
             if Fk:getCardById(info.cardId).name == "es__poison" then
               move.extra_data = move.extra_data or {}
               local dat = move.extra_data.poison or {}
@@ -143,6 +186,18 @@ local poison_trigger = fk.CreateTriggerSkill{
     end
   end,
 }
+local es__poison_give = fk.CreateActiveSkill{
+  name = "es__poison_give",
+  min_card_num = 1,
+  target_num = 1,
+  card_filter = function(self, to_select, selected)
+    return table.contains(Self:getMark("es__poison-tmp"), to_select)
+  end,
+  target_filter = function(self, to_select, selected)
+    return #selected == 0 and to_select ~= Self.id
+  end,
+}
+Fk:addSkill(es__poison_give)
 Fk:addSkill(poison_trigger)
 local esPoisonSkill = fk.CreateActiveSkill{
   name = "es__poison_skill",
@@ -153,30 +208,29 @@ local es__poison = fk.CreateBasicCard{
   skill = esPoisonSkill,
 }
 Fk:addSkill(esPoisonSkill)
+addPreasentCard(es__poison:clone(Card.Spade, 4))
+addPreasentCard(es__poison:clone(Card.Spade, 5))
+addPreasentCard(es__poison:clone(Card.Spade, 9))
+addPreasentCard(es__poison:clone(Card.Spade, 10))
 extension:addCards({
-  es__poison:clone(Card.Spade, 4),--赠
-  es__poison:clone(Card.Spade, 5),--赠
-  es__poison:clone(Card.Spade, 9),--赠
-  es__poison:clone(Card.Spade, 10),--赠
   es__poison:clone(Card.Club, 4),
 })
 Fk:loadTranslationTable{
   ["es__poison"] = "毒",
   [":es__poison"] = "基本牌<br/><b>效果</b>：①当【毒】正面向上离开你的手牌区或作为你的拼点牌亮出后，你失去1点体力。②当你因摸牌获得【毒】后，"..
   "你可以将之交给一名其他角色，以此法失去【毒】时不触发失去体力效果。",
+  ["es__poison_give"] = "",
+  ["#es__poison-give"] = "你可以将摸到的【毒】交给其他角色（不触发失去体力效果）",
 }
 
+addPreasentCard(Fk:cloneCard("snatch", Card.Spade, 3))
+addPreasentCard(Fk:cloneCard("duel", Card.Diamond, 1))
 extension:addCards{
-  Fk:cloneCard("snatch", Card.Spade, 3),--赠
-
-  Fk:cloneCard("duel", Card.Diamond, 1),--赠
-
   Fk:cloneCard("nullification", Card.Spade, 11),
   Fk:cloneCard("nullification", Card.Club, 11),
   Fk:cloneCard("nullification", Card.Club, 12),
-
-  Fk:cloneCard("amazing_grace", Card.Heart, 3),--赠
 }
+addPreasentCard(Fk:cloneCard("amazing_grace", Card.Heart, 3))
 
 local bogusFlowerSkill = fk.CreateActiveSkill{
   name = "bogus_flower_skill",
@@ -208,10 +262,8 @@ local bogus_flower = fk.CreateTrickCard{
   name = "bogus_flower",
   skill = bogusFlowerSkill,
 }
-extension:addCards({
-  bogus_flower:clone(Card.Diamond, 3),
-  bogus_flower:clone(Card.Diamond, 4),
-})
+addPreasentCard(bogus_flower:clone(Card.Diamond, 3))
+addPreasentCard(bogus_flower:clone(Card.Diamond, 4))
 Fk:loadTranslationTable{
   ["bogus_flower"] = "树上开花",
   ["bogus_flower_skill"] = "树上开花",
@@ -380,7 +432,7 @@ local broken_halberd = fk.CreateWeapon{
   attack_range = 0,
   equip_skill = brokenHalberdSkill,
 }
-extension:addCard(broken_halberd)
+addPreasentCard(broken_halberd)
 Fk:loadTranslationTable{
   ["broken_halberd"] = "折戟",
   [":broken_halberd"] = "装备牌·武器<br/><b>攻击范围</b>：0<br/>这是一把坏掉的武器……",
@@ -406,7 +458,7 @@ local seven_stars_precious_sword = fk.CreateWeapon{
     end
   end,
 }
-extension:addCard(seven_stars_precious_sword)
+addPreasentCard(seven_stars_precious_sword)
 Fk:loadTranslationTable{
   ["seven_stars_precious_sword"] = "七星宝刀",
   [":seven_stars_precious_sword"] = "装备牌·武器<br/><b>攻击范围</b>：2<br/><b>武器技能</b>：锁定技，当此牌进入你的装备区时，弃置你判定区和"..
@@ -487,9 +539,7 @@ local bee_cloth = fk.CreateArmor{
   number = 3,
   equip_skill = beeClothSkill,
 }
-extension:addCards{
-  bee_cloth,
-}
+addPreasentCard(bee_cloth)
 Fk:loadTranslationTable{
   ["bee_cloth"] = "引蜂衣",
   ["#bee_cloth_skill"] = "引蜂衣",
@@ -525,9 +575,7 @@ local women_dress = fk.CreateArmor{
   number = 9,
   equip_skill = womenDressSkill,
 }
-extension:addCards{
-  women_dress,
-}
+addPreasentCard(women_dress)
 Fk:loadTranslationTable{
   ["women_dress"] = "女装",
   ["#women_dress_skill"] = "女装",
@@ -539,9 +587,7 @@ local elephant = fk.CreateDefensiveRide{
   suit = Card.Heart,
   number = 13,
 }
-extension:addCards({
-  elephant,
-})
+addPreasentCard(elephant)
 Fk:loadTranslationTable{
   ["elephant"] = "战象",
   [":elephant"] = "装备牌·坐骑<br/><b>坐骑技能</b>：锁定技，其他角色计算至你的距离+1，其他角色对你赠予时赠予失败。",
@@ -563,9 +609,7 @@ local inferior_horse = fk.CreateOffensiveRide{
   number = 13,
   equip_skill = inferiorHorseSkill,
 }
-extension:addCards({
-  inferior_horse,
-})
+addPreasentCard(inferior_horse)
 Fk:loadTranslationTable{
   ["inferior_horse"] = "驽马",
   [":inferior_horse"] = "装备牌·坐骑<br/><b>坐骑技能</b>：锁定技，你计算至其他角色的距离-1，其他角色计算至你的距离始终为1。",
@@ -600,15 +644,95 @@ local carrier_pigeon = fk.CreateTreasure{
   number = 4,
   equip_skill = carrierPigeonSkill,
 }
-extension:addCards({
-  carrier_pigeon,
-})
+addPreasentCard(carrier_pigeon)
 Fk:loadTranslationTable{
   ["carrier_pigeon"] = "信鸽",
   ["carrier_pigeon_skill&"] = "信鸽",
   [":carrier_pigeon"] = "装备牌·宝物<br/><b>宝物技能</b>：出牌阶段限一次，你可以将一张手牌交给一名其他角色。",
   [":carrier_pigeon_skill&"] = "出牌阶段限一次，你可以将一张手牌交给一名其他角色",
   ["#carrier_pigeon_skill"] = "信鸽：你可以将一张手牌交给一名其他角色",
+}
+
+local function PresentCard(player, target, card)
+  local room = player.room
+  if card.type ~= Card.TypeEquip then
+    room:moveCardTo(card, Card.PlayerHand, target, fk.ReasonGive, "present", nil, true, player.id)
+  else
+    if target:hasEmptyEquipSlot(card.sub_type) then
+      room:moveCardTo(card, Card.PlayerEquip, target, fk.ReasonGive, "present", nil, true, player.id)
+    elseif #target:getEquipments(card.sub_type) > 0 then
+      room:moveCards({
+        ids = target:getEquipments(card.sub_type),
+        from = target.id,
+        toArea = Card.DiscardPile,
+        moveReason = fk.ReasonJustMove,
+        skillName = "present",
+        proposer = player.id,
+      },
+      {
+        ids = {card.id},
+        from = player.id,
+        to = target.id,
+        toArea = Card.PlayerEquip,
+        moveReason = fk.ReasonJustMove,
+        skillName = "present",
+        proposer = player.id,
+      })
+    elseif #target:getAvailableEquipSlots(card.sub_type) == 0 then
+      room:moveCardTo(card, Card.DiscardPile, target, fk.ReasonJustMove, "present", nil, true, player.id)
+    end
+  end
+end
+local present_skill = fk.CreateActiveSkill{
+  name = "present_skill&",
+  prompt = "#present_skill&",
+  anim_type = "support",
+  card_num = 1,
+  target_num = 1,
+  can_use = function(self, player)
+    return table.find(player:getCardIds("h"), function(id) return Fk:getCardById(id):getMark("@@present") > 0 end)
+  end,
+  card_filter = function(self, to_select, selected)
+    return #selected == 0 and Fk:getCardById(to_select):getMark("@@present") > 0 and table.contains(Self:getCardIds("h"), to_select)
+  end,
+  target_filter = function(self, to_select, selected, selected_cards)
+    return #selected == 0 and to_select ~= Self.id
+  end,
+  on_use = function(self, room, effect)
+    local player = room:getPlayerById(effect.from)
+    local target = room:getPlayerById(effect.tos[1])
+    PresentCard(player, target, Fk:getCardById(effect.cards[1]))
+  end,
+}
+local espionage_rule = fk.CreateTriggerSkill{
+  name = "#espionage_rule",
+  priority = 0.001,
+  global = true,
+
+  refresh_events = {fk.GamePrepared},
+  can_refresh = function(self, event, target, player, data)
+    return not table.contains(player.room.disabled_packs, "espionage_cards")
+  end,
+  on_refresh = function(self, event, target, player, data)
+    local room = player.room
+    for _, p in ipairs(room.alive_players) do
+      room:handleAddLoseSkills(p, "present_skill&", nil, false, true)
+    end
+    for _, card in ipairs(Fk.packages["espionage_cards"].cards) do
+      if table.contains(PresentCards, card) then
+        room:setCardMark(card, "@@present", 1)
+      end
+    end
+  end,
+}
+Fk:addSkill(present_skill)
+Fk:addSkill(espionage_rule)
+Fk:loadTranslationTable{
+  ["present_skill&"] = "赠予",
+  [":present_skill&"] = "出牌阶段，你可以从手牌中将一张有“赠”标记的牌正面向上赠予其他角色。若此牌不是装备牌，则进入该角色手牌区；若此牌是装备牌，"..
+  "则进入该角色装备区且替换已有装备。",
+  ["#present_skill&"] = "将一张有“赠”标记的牌赠予其他角色",
+  ["@@present"] = "<font color='yellow'>赠</font>",
 }
 
 return extension

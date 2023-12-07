@@ -40,8 +40,22 @@ local espionage = fk.CreateGameMode{
   name = "espionage",
   minPlayer = 2,
   maxPlayer = 8,
-  whitelist = {"espionage"},
-  blacklist = {},
+  blacklist = {
+    "standard_cards",
+    "maneuvering",
+    "hegemony_cards",
+    "formation_cards",
+    "momentum_cards",
+    "transformation_cards",
+    "power_cards",
+    "chaos_mode_cards",
+    "vanished_dragon_cards",
+    "variation_cards",
+  },
+  logic = Fk.game_modes["aaa_role_mode"].logic,
+  surrender_func = function(self, playedTime)
+    return Fk.game_modes["aaa_role_mode"]:surrenderFunc(self, playedTime)
+  end,
 }
 
 Fk:loadTranslationTable{

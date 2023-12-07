@@ -51,6 +51,7 @@ local variation = fk.CreateGameMode{
     "power_cards",
     "chaos_mode_cards",
     "vanished_dragon_cards",
+    "espionage_cards",
   },
   --rule = variation_rule,
   logic = Fk.game_modes["aaa_role_mode"].logic,

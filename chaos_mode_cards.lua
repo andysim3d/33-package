@@ -48,7 +48,7 @@ local poisonAction = fk.CreateTriggerSkill{
     for _, move in ipairs(data) do
       if move.from == player.id and move.moveReason ~= fk.ReasonUse then
         for _, info in ipairs(move.moveInfo) do
-          if info.fromArea == Card.PlayerHand and (info.moveVisible or move.toArea == Card.PlayerEquip or move.toArea == Card.PlayerJudge or move.toArea == Card.DiscardPile or move.toArea == Card.Processing) then --寄 
+          if info.fromArea == Card.PlayerHand and (move.moveVisible or table.contains({2, 3, 5, 7}, move.toArea)) then
             local id = info.cardId
             if Fk:getCardById(id).name == "poison" or (player:getMark("@chaos_mode_event") == "poisoned_banquet" and Fk:getCardById(id).name == "peach") then --耦
               data.extra_data = data.extra_data or {}
