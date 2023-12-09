@@ -46,10 +46,6 @@ local stab__slash_trigger = fk.CreateTriggerSkill{
       return true
     else
       room:throwCard(card, self.name, player, player)
-      local e = room.logic:getCurrentEvent():findParent(GameEvent.CardEffect)
-      if e then
-        e:shutdown()
-      end
     end
   end,
 }
