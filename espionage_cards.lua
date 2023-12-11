@@ -3,6 +3,9 @@
 local extension = Package:new("espionage_cards", Package.CardPack)
 extension.extensionName = "gamemode"
 extension.game_modes_blacklist = {"m_1v1_mode", "m_1v2_mode", "m_2v2_mode", "zombie_mode", "heg_mode"}
+
+local U = require "packages/utility/utility"
+
 Fk:loadTranslationTable{
   ["espionage_cards"] = "用间",
 }
@@ -649,36 +652,6 @@ Fk:loadTranslationTable{
   ["#carrier_pigeon_skill"] = "信鸽：你可以将一张手牌交给一名其他角色",
 }
 
-local function PresentCard(player, target, card)
-  local room = player.room
-  if card.type ~= Card.TypeEquip then
-    room:moveCardTo(card, Card.PlayerHand, target, fk.ReasonGive, "present", nil, true, player.id)
-  else
-    if target:hasEmptyEquipSlot(card.sub_type) then
-      room:moveCardTo(card, Card.PlayerEquip, target, fk.ReasonGive, "present", nil, true, player.id)
-    elseif #target:getEquipments(card.sub_type) > 0 then
-      room:moveCards({
-        ids = target:getEquipments(card.sub_type),
-        from = target.id,
-        toArea = Card.DiscardPile,
-        moveReason = fk.ReasonJustMove,
-        skillName = "present",
-        proposer = player.id,
-      },
-      {
-        ids = {card.id},
-        from = player.id,
-        to = target.id,
-        toArea = Card.PlayerEquip,
-        moveReason = fk.ReasonJustMove,
-        skillName = "present",
-        proposer = player.id,
-      })
-    elseif #target:getAvailableEquipSlots(card.sub_type) == 0 then
-      room:moveCardTo(card, Card.DiscardPile, target, fk.ReasonJustMove, "present", nil, true, player.id)
-    end
-  end
-end
 local present_skill = fk.CreateActiveSkill{
   name = "present_skill&",
   prompt = "#present_skill&",
@@ -697,7 +670,7 @@ local present_skill = fk.CreateActiveSkill{
   on_use = function(self, room, effect)
     local player = room:getPlayerById(effect.from)
     local target = room:getPlayerById(effect.tos[1])
-    PresentCard(player, target, Fk:getCardById(effect.cards[1]))
+    U.presentCard(player, target, Fk:getCardById(effect.cards[1]))
   end,
 }
 local espionage_rule = fk.CreateTriggerSkill{
