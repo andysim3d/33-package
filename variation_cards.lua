@@ -1,7 +1,7 @@
 -- SPDX-License-Identifier: GPL-3.0-or-later
 
 local extension = Package:new("variation_cards", Package.CardPack)
-extension.extensionName = "game_mode"
+extension.extensionName = "gamemode"
 extension.game_modes_blacklist = {"m_1v1_mode", "m_1v2_mode", "m_2v2_mode"}
 
 local U = require "packages/utility/utility"

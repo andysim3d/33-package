@@ -1,7 +1,7 @@
 -- SPDX-License-Identifier: GPL-3.0-or-later
 
 local extension = Package:new("espionage_cards", Package.CardPack)
-extension.extensionName = "game_mode"
+extension.extensionName = "gamemode"
 extension.game_modes_blacklist = {"m_1v1_mode", "m_1v2_mode", "m_2v2_mode", "zombie_mode", "heg_mode"}
 Fk:loadTranslationTable{
   ["espionage_cards"] = "用间",

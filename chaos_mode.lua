@@ -149,14 +149,16 @@ local chaos_event = { "luanwu", "generous_reward", "burning_one's_boats", "level
 local chaos_rule = fk.CreateTriggerSkill{
   name = "#chaos_rule",
   priority = 0.001,
-  refresh_events = {fk.GameStart, fk.GameOverJudge, fk.Deathed, fk.RoundStart, fk.EventPhaseChanging, fk.DamageInflicted, fk.RoundEnd, fk.HpChanged, fk.MaxHpChanged},
+  refresh_events = {fk.GameStart, fk.GameOverJudge, fk.Deathed, fk.RoundStart, fk.TurnStart, fk.TurnEnd, fk.DamageInflicted, fk.RoundEnd, fk.HpChanged, fk.MaxHpChanged},
   can_refresh = function(self, event, target, player, data)
     local room = player.room
     if event == fk.GameStart then return player.seat == 1 end
     if target ~= player then return false end
     local num = room:getTag("chaos_mode_event")
-    if event == fk.EventPhaseChanging then
-      return (data.from == Player.NotActive and num == 3) or (data.to == Player.NotActive and num == 4)
+    if event == fk.TurnStart then
+      return num == 3
+    elseif event == fk.TurnEnd then
+      return num == 4
     elseif event == fk.DamageInflicted then
       return num == 5
     elseif event == fk.RoundEnd then
@@ -250,51 +252,49 @@ local chaos_rule = fk.CreateTriggerSkill{
         room:addPlayerMark(player, "_chaos_mode_bazhen")
         room:handleAddLoseSkills(player, "bazhen", nil, false, false)
       end
-    elseif event == fk.EventPhaseChanging then
-      if room:getTag("chaos_mode_event") == 3 then
-        room:loseHp(player, 1, self.name)
-        if not player.dead then
-          player:drawCards(3, self.name)
+    elseif event == fk.TurnStart then
+      room:loseHp(player, 1, self.name)
+      if not player.dead then
+        player:drawCards(3, self.name)
+      end
+    elseif event == fk.TurnEnd then
+      local num = 9
+      local targets = {}
+      for _, p in ipairs(room.alive_players) do
+        local n = #p:getCardIds("e")
+        if n < num then
+          num = n
+          targets = {}
+          table.insert(targets, p.id)
+        elseif n == num then
+          table.insert(targets, p.id)
         end
-      else
-        local num = 9
-        local targets = {}
-        for _, p in ipairs(room.alive_players) do
-          local n = #p:getCardIds("e")
-          if n < num then
-            num = n
-            targets = {}
-            table.insert(targets, p.id)
-          elseif n == num then
-            table.insert(targets, p.id)
-          end
-        end
-        room:sortPlayersByAction(targets)
-        local types = {Card.SubtypeWeapon, Card.SubtypeArmor, Card.SubtypeDefensiveRide, Card.SubtypeOffensiveRide, Card.SubtypeTreasure}
-        for _, pid in ipairs(targets) do
-          local p = room:getPlayerById(pid)
+      end
+      room:sortPlayersByAction(targets)
+      local types = {Card.SubtypeWeapon, Card.SubtypeArmor, Card.SubtypeDefensiveRide, Card.SubtypeOffensiveRide, Card.SubtypeTreasure}
+      for _, pid in ipairs(targets) do
+        local p = room:getPlayerById(pid)
+        if not p.dead then
+          room:loseHp(p, 1, self.name)
           if not p.dead then
-            room:loseHp(p, 1, self.name)
-            if not p.dead then
-              local cards = {}
-              local draw_pile = table.clone(room.draw_pile)
-              table.shuffle(draw_pile)
-              for i = 1, #draw_pile, 1 do
-                local card = Fk:getCardById(draw_pile[i])
-                if table.contains(types, card.sub_type) and p:getEquipment(card.sub_type) == nil then
-                  table.insert(cards, draw_pile[i])
-                  break
-                end
+            local cards = {}
+            local draw_pile = table.clone(room.draw_pile)
+            table.shuffle(draw_pile)
+            for i = 1, #draw_pile, 1 do
+              local card = Fk:getCardById(draw_pile[i])
+              if table.contains(types, card.sub_type) and p:getEquipment(card.sub_type) == nil then
+                table.insert(cards, draw_pile[i])
+                break
               end
-              if #cards > 0 then
-                room:sendLog{
-                  type = "#chaos_mode_event_4_log",
-                  from = pid,
-                  arg = "leveling_the_blades",
-                  arg2 = Fk:getCardById(cards[1], true):toLogString(),
-                }
-                room:moveCardTo(cards, Card.PlayerEquip, p, fk.ReasonJustMove, self.name)
-              end
+            end
+            if #cards > 0 then
+              room:sendLog{
+                type = "#chaos_mode_event_4_log",
+                from = pid,
+                arg = "leveling_the_blades",
+                arg2 = Fk:getCardById(cards[1], true):toLogString(),
+              }
+              room:moveCardTo(cards, Card.PlayerEquip, p, fk.ReasonJustMove, self.name)
             end
           end
         end
