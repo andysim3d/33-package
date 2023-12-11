@@ -62,7 +62,7 @@ local IceDamageSkill = fk.CreateTriggerSkill{
   mute = true,
   events = {fk.DamageCaused},
   can_trigger = function(self, event, target, player, data)
-    return target == player and data.damageType == fk.IceDamage and not data.chain
+    return target == player and data.damageType == fk.IceDamage and not data.chain and not data.to:isNude()
   end,
   on_cost = function (self, event, target, player, data)
     return player.room:askForSkillInvoke(player, self.name, nil, "#ice_damage_skill-invoke::"..data.to.id)
