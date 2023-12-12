@@ -135,7 +135,7 @@ local m_1v2_rule = fk.CreateTriggerSkill{
   priority = 0.001,
   refresh_events = {fk.GameStart, fk.Deathed},
   can_refresh = function(self, event, target, player, data)
-    return event == fk.GameStart and player.role == "lord" or target == player
+    return event == fk.GameStart and player.role == "lord" or (target == player and not player.rest > 0)
   end,
   on_refresh = function(self, event, target, player, data)
     local room = player.room
@@ -171,7 +171,10 @@ local m_1v2_mode = fk.CreateGameMode{
   surrender_func = function(self, playedTime)
     local surrenderJudge = { { text = "time limitation: 2 min", passed = playedTime >= 120 } }
     if Self.role ~= "lord" then
-      table.insert(surrenderJudge, { text = "1v2: left you alive", passed = #Fk:currentRoom().alive_players == 2 })
+      table.insert(
+        surrenderJudge,
+        { text = "1v2: left you alive", passed = #table.filter(Fk:currentRoom().players, function(p) return p.rest > 0 or not p.dead end) == 2 }
+      )
     end
 
     return surrenderJudge
