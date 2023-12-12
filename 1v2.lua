@@ -135,7 +135,7 @@ local m_1v2_rule = fk.CreateTriggerSkill{
   priority = 0.001,
   refresh_events = {fk.GameStart, fk.Deathed},
   can_refresh = function(self, event, target, player, data)
-    return event == fk.GameStart and player.role == "lord" or (target == player and not player.rest > 0)
+    return event == fk.GameStart and player.role == "lord" or (target == player and player.rest == 0)
   end,
   on_refresh = function(self, event, target, player, data)
     local room = player.room
