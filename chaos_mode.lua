@@ -355,13 +355,16 @@ local chaos_mode = fk.CreateGameMode{
   rule = chaos_rule,
   logic = chaos_getLogic,
   surrender_func = function(self, playedTime)
-    local surrenderJudge = { { text = "chaos: left two alive", passed = #Fk:currentRoom().alive_players == 2 } }
+    local surrenderJudge = { { text = "chaos: left two alive", passed = #table.filter(Fk:currentRoom().players, function(p) return p.rest > 0 or not p.dead end) == 2 } }
     return surrenderJudge
   end,
   winner_getter = function(self, victim)
+    if victim.rest > 0 then
+      return ""
+    end
     local room = victim.room
-    local alive = table.filter(room.alive_players, function(p)
-      return not p.surrendered
+    local alive = table.filter(room.players, function(p)
+      return not p.surrendered and not (p.dead and p.rest == 0)
     end)
     if #alive > 1 then return "" end
     alive[1].role = "renegade" --生草

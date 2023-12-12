@@ -597,9 +597,12 @@ local qixi_mode = fk.CreateGameMode{
   logic = qixi_get_logic,
   rule = qixi_rule,
   winner_getter = function(self, victim)
+    if victim.rest > 0 then
+      return ""
+    end
     local room = victim.room
-    local alive = table.filter(room.alive_players, function(p)
-      return not p.surrendered
+    local alive = table.filter(room.players, function(p)
+      return not p.surrendered and not (p.dead and p.rest == 0)
     end)
     if #alive > 2 then return "" end
     if #alive == 1 then

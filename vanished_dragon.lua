@@ -285,8 +285,9 @@ local vanished_dragon_getLogic = function()
   return vanished_dragon_logic
 end
 
---明主杀暗忠呢
 ---@param killer ServerPlayer
+---@param victim ServerPlayer
+---@param room Room
 local function rewardAndPunish(killer, victim, room)
   if killer.dead then return end
   local shownLoyalist = room:getTag("ShownLoyalist")

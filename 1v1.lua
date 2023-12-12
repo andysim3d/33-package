@@ -237,14 +237,6 @@ local m_1v1_mode = fk.CreateGameMode{
   surrender_func = function(self, playedTime)
     return { { text = "time limitation: 2 min", passed = playedTime >= 120 } }
   end,
-  winner_getter = function(self, victim)
-    local room = victim.room
-    local alive = table.filter(room.alive_players, function(p)
-      return not p.surrendered
-    end)
-    if #alive ~= 1 then return "" end
-    return alive[1].role
-  end,
 }
 -- extension:addGameMode(m_1v1_mode)
 Fk:loadTranslationTable{

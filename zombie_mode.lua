@@ -263,11 +263,14 @@ local zombie_mode = fk.CreateGameMode{
   logic = zombie_getLogic,
   rule = zombie_rule,
   winner_getter = function(self, victim)
+    if victim.rest > 0 then
+      return ""
+    end
     local room = victim.room
     local haszombie = table.find(room.players, function(p) return p.role == "rebel" end)
 
-    local alive = table.filter(room.alive_players, function(p)
-      return not p.surrendered
+    local alive = table.filter(room.players, function(p)
+      return not p.surrendered and not (p.dead and p.rest == 0)
     end)
     if #alive == 1 and not haszombie then
       return "rebel"
