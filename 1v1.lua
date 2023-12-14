@@ -163,8 +163,6 @@ local m_1v1_rule = fk.CreateTriggerSkill{
     elseif event == fk.GameOverJudge then
       room:setTag("SkipGameRule", true)
       local body = room:getPlayerById(data.who)
-      local all_generals = room:getTag("1v1_generals")
-      local generals = all_generals[body.seat]
       local num, num2
       for _, p in ipairs(room.players) do
         local n = 5 - #room:getTag("1v1_generals")[p.seat]
@@ -178,7 +176,7 @@ local m_1v1_rule = fk.CreateTriggerSkill{
       room:setBanner("@firstFallen", tostring(num) .. " / 3")
       room:setBanner("@secondFallen", tostring(num2) .. " / 3")
       room:doBroadcastNotify("ShowToast", Fk:translate("1v1 score") .. tostring(num) .. ":" .. tostring(num2) .. Fk:translate("_1v1 score"))
-      if #generals > 3 then return end
+      if num < 3 and num2 < 3 then return end
       room:gameOver(body.next.role)
       return true
     elseif event == fk.GameStart then

@@ -19,7 +19,7 @@ local espionage_cards = require "packages/gamemode/espionage_cards"
 local vanished_dragon_cards = require "packages/gamemode/vanished_dragon_cards"
 local variation_cards = require "packages/gamemode/variation_cards"
 
-local zombie = require "packages/gamemode/zombie"
+local gamemode_generals = require "packages/gamemode/gamemode_generals"
 
 Fk:loadTranslationTable(require 'packages/gamemode/i18n/en_US', 'en_US')
 
@@ -31,5 +31,5 @@ return {
   vanished_dragon_cards,
   variation_cards,
 
-  zombie,
+  gamemode_generals,
 }
