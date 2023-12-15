@@ -7,6 +7,7 @@ local U = require "packages/utility/utility"
 Fk:loadTranslationTable{
   ["gamemode_generals"] = "模式专属武将",
   ["v33"] = "3v3",
+  ["v22"] = "2v2",
   ["v11"] = "1v1",
 }
 
@@ -18,12 +19,7 @@ local xunmeng = fk.CreateTriggerSkill{
   frequency = Skill.Compulsory,
   events = {fk.DamageCaused},
   can_trigger = function(self, event, target, player, data)
-    if target ~= player or not player:hasSkill(self) then
-      return
-    end
-
-    local c = data.card
-    return c and c.trueName == "slash"
+    return target == player and player:hasSkill(self) and data.card and data.card.trueName == "slash"
   end,
   on_use = function(self, event, target, player, data)
     local room = player.room
@@ -87,6 +83,7 @@ Fk:loadTranslationTable{
 }
 
 local v33__zhugejin = General(extension, "v33__zhugejin", "wu", 3)
+v33__zhugejin.hidden = true
 local v33__huanshi = fk.CreateTriggerSkill{
   name = "v33__huanshi",
   anim_type = "support",
@@ -163,7 +160,8 @@ Fk:loadTranslationTable{
 Fk:loadTranslationTable{
   ["v33__xiahoudun"] = "夏侯惇",
   ["v33__ganglie"] = "刚烈",
-  [":v33__ganglie"] = "当你受到伤害后，你可以选择一名对方角色，然后判定，若结果不为♥，其选择一项：1.弃置两张手牌；2.你对其造成1点伤害。",
+  [":v33__ganglie"] = "当你受到伤害后，你可以选择一名对方角色，然后判定，若结果不为<font color='red'>♥</font>，其选择一项：1.弃置两张手牌；"..
+  "2.你对其造成1点伤害。",
 }
 
 Fk:loadTranslationTable{
@@ -178,11 +176,92 @@ Fk:loadTranslationTable{
   [":v33__yicheng"] = "当己方角色成为敌方角色使用【杀】的目标后，你可以令其摸一张牌，然后其弃置一张手牌；若弃置的是装备牌，则改为其使用之。",
 }
 
+local v33__lvbu = General(extension, "v33__lvbu", "qun", 4)
+local v33__zhanshen = fk.CreateTriggerSkill{
+  name = "v33__zhanshen",
+  anim_type = "special",
+  frequency = Skill.Compulsory,
+  events = {fk.EventPhaseStart},
+  can_trigger = function(self, event, target, player, data)
+    if target == player and player:hasSkill(self) and player.phase == Player.Start then
+      for i = 1, 3, 1 do
+        if player:getMark("v33__zhanshen_"..i) == 0 then
+          return true
+        end
+      end
+    end
+  end,
+  on_use = function(self, event, target, player, data)
+    local room = player.room
+    local choices = table.map(table.filter({1, 2, 3}, function(n)
+      return player:getMark("v33__zhanshen_"..n) == 0
+    end), function(n)
+      return "v33__zhanshen_"..n
+    end)
+    local choice = room:askForChoice(player, choices, self.name, "#v33__zhanshen-choice")
+    room:setPlayerMark(player, choice, 1)
+  end,
+}
+local v33__zhanshen_trigger = fk.CreateTriggerSkill{
+  name = "#v33__zhanshen_trigger",
+  mute = true,
+  events = {fk.DrawNCards, fk.PreCardUse, fk.AfterCardTargetDeclared},
+  can_trigger = function (self, event, target, player, data)
+    if target == player then
+      if event == fk.DrawNCards then
+        return player:getMark("v33__zhanshen_1") > 0
+      elseif event == fk.PreCardUse then
+        return player:getMark("v33__zhanshen_2") > 0 and data.card.trueName == "slash"
+      elseif event == fk.AfterCardTargetDeclared then
+        return player:getMark("v33__zhanshen_3") > 0 and data.card.trueName == "slash" and
+          #U.getUseExtraTargets(player.room, data, false) > 0
+      end
+    end
+  end,
+  on_cost = function (self, event, target, player, data)
+    if event == fk.DrawNCards or event == fk.PreCardUse then
+      return true
+    elseif event == fk.AfterCardTargetDeclared then
+      local targets = U.getUseExtraTargets(player.room, data, false)
+      local tos = player.room:askForChoosePlayers(player, targets, 1, 1,
+        "#v33__zhanshen-choose:::"..data.card:toLogString(), "v33__zhanshen", true)
+      if #tos > 0 then
+        self.cost_data = tos
+        return true
+      end
+    end
+  end,
+  on_use = function(self, event, target, player, data)
+    local room = player.room
+    player:broadcastSkillInvoke("v33__zhanshen")
+    if event == fk.DrawNCards then
+      room:notifySkillInvoked(player, "v33__zhanshen", "drawcard")
+      data.n = data.n + 1
+    elseif event == fk.PreCardUse then
+      room:notifySkillInvoked(player, "v33__zhanshen", "offensive")
+      data.additionalDamage = (data.additionalDamage or 0) + 1
+    elseif event == fk.AfterCardTargetDeclared then
+      room:notifySkillInvoked(player, "v33__zhanshen", "offensive")
+      table.insert(data.tos, self.cost_data)
+    end
+  end,
+}
+v33__zhanshen:addRelatedSkill(v33__zhanshen_trigger)
+v33__lvbu:addSkill(v33__zhanshen)
 Fk:loadTranslationTable{
   ["v33__lvbu"] = "吕布",
   ["v33__zhanshen"] = "战神",
   [":v33__zhanshen"] = "锁定技，准备阶段，你选择一项未获得过的效果，获得此效果直到本局游戏结束：<br>"..
   "1.摸牌阶段，你多摸一张牌；<br>2.你使用【杀】造成伤害+1；<br>3.你使用【杀】可以额外选择一个目标。",
+  ["#v33__zhanshen-choice"] = "战神：选择一项效果，本局游戏永久获得",
+  ["v33__zhanshen_1"] = "摸牌阶段多摸一张牌",
+  ["v33__zhanshen_2"] = "使用【杀】伤害+1",
+  ["v33__zhanshen_3"] = "使用【杀】可以额外选择一个目标",
+  ["#v33__zhanshen-choose"] = "战神：你可以为此%arg增加一个目标",
+
+  ["$v33__zhanshen1"] = "战神降世，神威再临！",
+  ["$v33__zhanshen2"] = "战神既出，谁与争锋！",
+  ["~v33__lvbu"] = "不可能！",
 }
 
 local v11__niujin = General(extension, "v11__niujin", "wei", 4)
@@ -249,7 +328,7 @@ Fk:loadTranslationTable{
   [":v11__niluan"] = "对手的结束阶段，若其体力值大于你，或其本回合对你使用过【杀】，你可以将一张黑色牌当【杀】对其使用。",
 }
 
---张辽 许褚 甄姬 夏侯渊 刘备 关羽 马超 黄月英 魏延 姜维 孟获 祝融 孙权 甘宁 吕蒙 大乔 孙尚香 貂蝉 庞德 华佗
+--张辽 许褚 甄姬 夏侯渊 刘备 关羽 马超 黄月英 魏延 姜维 孟获 祝融 孙权 甘宁 吕蒙 大乔 孙尚香 貂蝉 华佗 庞德
 
 Fk:loadTranslationTable{
   ["v11__xiangchong"] = "向宠",
@@ -328,6 +407,192 @@ Fk:loadTranslationTable{
   ["v11__zhuyi"] = "注诣",
   ["v11__chengji"] = "城棘",
   [":v11__chengji"] = "当你造成或受到伤害后，若“城棘”牌少于四张，你可以将造成伤害的牌置于你的武将牌上。你死亡后，你的下一名武将登场时获得所有“城棘”牌。",
+}
+
+local v22__leitong = General(extension, "v22__leitong", "shu", 4)
+local v22__kuiji = fk.CreateActiveSkill{
+  name = "v22__kuiji",
+  anim_type = "offensive",
+  target_num = 0,
+  card_num = 1,
+  prompt = "#v22__kuiji",
+  can_use = function(self, player)
+    return player:usedSkillTimes(self.name) == 0 and not player:hasDelayedTrick("supply_shortage")
+  end,
+  card_filter = function(self, to_select, selected)
+    return #selected == 0 and Fk:getCardById(to_select).type == Card.TypeBasic and Fk:getCardById(to_select).color == Card.Black
+  end,
+  on_use = function(self, room, effect)
+    local player = room:getPlayerById(effect.from)
+    local card = Fk:cloneCard("supply_shortage")
+    card:addSubcards(effect.cards)
+    card.skillName = self.name
+    player:addVirtualEquip(card)
+    room:moveCardTo(card, Player.Judge, player, fk.ReasonJustMove, self.name)
+    if player.dead then return end
+    player:drawCards(1, self.name)
+    local targets = table.map(table.filter(U.GetEnemies(room, player), function(p)
+      return table.every(U.GetEnemies(room, player), function(p2)
+        return p.hp >= p2.hp
+      end)
+    end), Util.IdMapper)
+    local to = room:askForChoosePlayers(player, targets, 1, 1, "#v22__kuiji-damage", self.name, true)
+    if #to > 0 then
+      room:damage{
+        from = player,
+        to = room:getPlayerById(to[1]),
+        damage = 2,
+        skillName = self.name,
+      }
+    end
+  end,
+}
+local v22__kuiji_trigger = fk.CreateTriggerSkill{
+  name = "#v22__kuiji_trigger",
+  mute = true,
+  events = {fk.EnterDying},
+  can_trigger = function(self, event, target, player, data)
+    return data.damage and data.damage.skillName == "v22__kuiji" and data.damage.from and data.damage.from == player
+  end,
+  on_cost = Util.TrueFunc,
+  on_use = function(self, event, target, player, data)
+    local room = player.room
+    local targets = table.map(table.filter(U.GetFriends(room, player), function(p)
+      return table.every(U.GetFriends(room, player), function(p2)
+        return p.hp <= p2.hp and p:isWounded()
+      end)
+    end), Util.IdMapper)
+    if #targets == 0 then return end
+    local to = targets[1]
+    if #targets > 1 then
+      to = room:askForChoosePlayers(player, targets, 1, 1, "#v22__kuiji-recover", "v22__kuiji", false, true)[1]
+    end
+    room:doIndicate(player.id, {to})
+    room:recover({
+      who = room:getPlayerById(to),
+      num = 1,
+      recoverBy = player,
+      skillName = "v22__kuiji"
+    })
+  end,
+}
+v22__kuiji:addRelatedSkill(v22__kuiji_trigger)
+v22__leitong:addSkill(v22__kuiji)
+Fk:loadTranslationTable{
+  ["v22__leitong"] = "雷铜",
+  ["v22__kuiji"] = "溃击",
+  [":v22__kuiji"] = "出牌阶段限一次，你可以将一张黑色基本牌当作【兵粮寸断】置于你的判定区，然后摸一张牌。若如此做，你可以对体力值最多的一名敌方角色"..
+  "造成2点伤害，其因此进入濒死状态时，体力值最少的一名友方角色回复1点体力。",
+  ["#v22__kuiji"] = "溃击：将一张黑色基本牌当【兵粮寸断】置于你的判定区并摸一张牌，然后对一名体力最多的敌方造成2点伤害",
+  ["#v22__kuiji-damage"] = "溃击：你可以对体力值最多的一名敌方造成2点伤害",
+  ["#v22__kuiji-recover"] = "溃击：令体力值最少的一名友方回复1点体力",
+
+  ["$v22__kuiji1"] = "绝域奋击，孤注一掷。",
+  ["$v22__kuiji2"] = "舍得一身剐，不畏君王威。",
+  ["~v22__leitong"] = "翼德救我……",
+}
+
+Fk:loadTranslationTable{
+  ["v22__wulan"] = "吴兰",
+  ["v22__cuoruiw"] = "挫锐",
+  [":v22__cuoruiw"] = "出牌阶段开始时，你可以弃置一名友方角色区域内的一张牌。若如此做，你选择一项：1.弃置敌方角色装备区内至多两张与此牌颜色相同的牌；"..
+  "2.展示敌方角色共计两张手牌，然后获得其中与此牌颜色相同的牌。",
+}
+
+local v22__jianggan = General(extension, "v22__jianggan", "wei", 3)
+local v22__daoshu = fk.CreateTriggerSkill{
+  name = "v22__daoshu",
+  mute = true,
+  events = {fk.EventPhaseStart},
+  can_trigger = function(self, event, target, player, data)
+    return player:hasSkill(self) and table.contains(U.GetEnemies(player.room, player), target) and target.phase == Player.Play and
+      not target.dead and not target:isKongcheng() and player:usedSkillTimes(self.name, Player.HistoryRound) == 0
+  end,
+  on_cost = function(self, event, target, player, data)
+    return player.room:askForSkillInvoke(player, self.name, nil, "#v22__daoshu-invoke::"..target.id)
+  end,
+  on_use = function(self, event, target, player, data)
+    local room = player.room
+    player:broadcastSkillInvoke(self.name, 1)
+    room:notifySkillInvoked(player, self.name, "control")
+    room:doIndicate(player.id, {target.id})
+    room:useVirtualCard("analeptic", nil, target, target, self.name, false)
+    if player.dead or target.dead then return end
+    local names = {}
+    for _, id in ipairs(Fk:getAllCardIds()) do
+      local card = Fk:getCardById(id)
+      if card.type == Card.TypeBasic then
+        table.insertIfNeed(names, card.name)
+      end
+    end
+    local choice = room:askForChoice(target, names, self.name, "#v22__daoshu-declare:"..player.id)
+    room:doBroadcastNotify("ShowToast", Fk:translate(target.general)..Fk:translate("#v22__daoshu")..Fk:translate(choice))
+    local yes = room:askForChoice(player, {"yes", "no"}, self.name, "#v22__daoshu-choice::"..target.id..":"..choice)
+    local right = table.find(target:getCardIds("h"), function(id) return Fk:getCardById(id).trueName == choice end)
+    if ((yes == "yes" and right) or (yes == "no" and not right)) then
+      if not target:isKongcheng() then
+        player:broadcastSkillInvoke(self.name, 2)
+        local dummy = Fk:cloneCard("dilu")
+        dummy:addSubcards(table.random(target:getCardIds("h"), 2))
+        room:moveCardTo(dummy, Card.PlayerHand, player, fk.ReasonPrey, self.name, nil, false, player.id)
+      end
+    else
+      player:broadcastSkillInvoke(self.name, 3)
+    end
+  end,
+}
+local v22__daizui = fk.CreateTriggerSkill{
+  name = "v22__daizui",
+  anim_type = "defensive",
+  frequency = Skill.Limited,
+  events = {fk.DamageInflicted},
+  can_trigger = function(self, event, target, player, data)
+    return target == player and player:hasSkill(self) and data.damage >= player.hp and
+      player:usedSkillTimes(self.name, Player.HistoryGame) == 0
+  end,
+  on_use = function(self, event, target, player, data)
+    local room = player.room
+    if data.from and not data.from.dead and data.card then
+      local subcards = data.card:isVirtual() and data.card.subcards or {data.card.id}
+      if #subcards > 0 and table.every(subcards, function(id) return room:getCardArea(id) == Card.Processing end) then
+        room:doIndicate(player.id, {data.from.id})
+        player:addToPile("v22__jianggan_shi", data.card, true, self.name)
+        local turn = room.logic:getCurrentEvent():findParent(GameEvent.Round)
+        if turn ~= nil then
+          turn:addCleaner(function()
+            if not data.from.dead and #data.from:getPile("v22__jianggan_shi") > 0 then
+              local dummy = Fk:cloneCard("dilu")
+              dummy:addSubcards(data.from:getPile("v22__jianggan_shi"))
+              room:moveCardTo(dummy, Card.PlayerHand, data.from, fk.ReasonJustMove, self.name, nil, true, data.from.id)
+            end
+          end)
+        end
+      end
+    end
+    return true
+  end,
+}
+v22__jianggan:addSkill(v22__daoshu)
+v22__jianggan:addSkill(v22__daizui)
+Fk:loadTranslationTable{
+  ["v22__jianggan"] = "蒋干",
+  ["v22__daoshu"] = "盗书",
+  [":v22__daoshu"] = "每轮限一次，敌方角色的出牌阶段开始时，若其有手牌，你可以令其视为使用一张【酒】，并令其声明其手牌中有一种基本牌，你判断真假。"..
+  "若判断正确，则你随机获得其两张手牌。",
+  ["v22__daizui"] = "戴罪",
+  [":v22__daizui"] = "限定技，当你受到致命伤害时，你可以防止之，然后将造成伤害的牌置于伤害来源的武将牌上，称为“释”。本回合结束后，其获得所有“释”。",
+  ["#v22__daoshu-invoke"] = "盗书：令 %dest 视为使用【酒】，然后猜测其手牌中是否有其声明的基本牌，若猜对你获得其两张手牌",
+  ["#v22__daoshu-declare"] = "盗书：声明你有某种基本牌，令 %src 猜测",
+  ["#v22__daoshu"] = "声明其手牌中有 ",
+  ["#v22__daoshu-choice"] = "盗书：猜测 %dest 手中是否有【%arg】？若猜对你获得其两张手牌",
+  ["v22__jianggan_shi"] = "释",
+
+  ["$v22__daoshu1"] = "在此机要之地，何不一窥东吴军机？",
+  ["$v22__daoshu2"] = "哦？密信……果然有所收获。",
+  ["$v22__daoshu3"] = "啊？公，公瑾误会，误会矣！",
+  ["$v22__daizui1"] = "望丞相权且记过，容干将功折罪啊！",
+  ["$v22__daizui2"] = "干，谢丞相不杀之恩！",
+  ["~v22__jianggan"] = "唉！假信害我不浅啊！",
 }
 
 return extension

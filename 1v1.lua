@@ -47,8 +47,13 @@ local m_1v1_getLogic = function()
 
     local lord_generals = {}
     local nonlord_generals = {}
+    for _, g in ipairs(Fk.packages["gamemode_generals"].generals) do
+      if g.name:startsWith("v11__") then
+        table.insertIfNeed(room.general_pile, g.name)
+      end
+    end
     local all_generals = room:getNGenerals(12)
-    
+
     local function removeSame(t, n)
       local same = Fk:getSameGenerals(n)
       for i, v in ipairs(t) do
