@@ -119,9 +119,9 @@ local m_2v2_mode = fk.CreateGameMode{
   logic = m_2v2_getLogic,
   surrender_func = function(self, playedTime)
     local surrenderJudge = { { text = "time limitation: 2 min", passed = playedTime >= 120 },
-    { text = "2v2: left you alive", passed = #table.filter(Fk:currentRoom().players, function(p)
-      return p.role == Self.role and (p.rest > 0 or not p.dead)
-    end) and true } == 1 }
+    { text = "2v2: left you alive", passed = table.find(Fk:currentRoom().players, function(p)
+      return p.role == Self.role and p.dead and p.rest == 0
+    end) and true } }
     return surrenderJudge
   end,
   winner_getter = function(self, victim)
