@@ -554,7 +554,7 @@ local sevenStarsSwordSkill = fk.CreateTriggerSkill{
     data.qinggangNullified = nil
   end,
 }
-Fk:addSkill(sevenStarsSwordSkill)
+--Fk:addSkill(sevenStarsSwordSkill)
 local sevenStarsSword = fk.CreateWeapon{
   name = "&seven_stars_sword",
   suit = Card.Spade,
