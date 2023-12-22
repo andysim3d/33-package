@@ -274,19 +274,18 @@ local v11__cuorui = fk.CreateTriggerSkill{
   can_trigger = function(self, event, target, player, data)
     if target == player and player:hasSkill(self) then
       if event == "fk.Debut" then
-        return true
+        return #player.room:getBanner(player.role == "lord" and "@&firstGenerals" or "@&secondGenerals") - 2 > 0
       else
-        return data.to == Player.Judge and player:getMark("@@v11__cuorui") > 0
+        return data.to == Player.Judge and player:getMark("_v11__cuorui") == 0
       end
     end
   end,
   on_use = function(self, event, target, player, data)
     local room = player.room
     if event == "fk.Debut" then
-      player:drawCards(#room:getTag("1v1_generals")[player.seat] - 2, self.name)
+      player:drawCards(#room:getBanner(player.role == "lord" and "@&firstGenerals" or "@&secondGenerals") - 2, self.name)
     else
-      room:setPlayerMark(player, "@@v11__cuorui", 0)
-      player:skip(Player.Judge)
+      room:setPlayerMark(player, "_v11__cuorui", 1)
       return true
     end
   end,

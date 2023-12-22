@@ -116,9 +116,10 @@ local m_1v1_getLogic = function()
     room:broadcastProperty(nonlord, "general")
     room:broadcastProperty(lord, "kingdom")
     room:broadcastProperty(nonlord, "kingdom")
-    room:setTag("1v1_generals", {lord_generals, nonlord_generals})
     room:setBanner("@firstFallen", "0 / 3")
     room:setBanner("@secondFallen", "0 / 3")
+    room:setBanner("@&firstGenerals", lord_generals)
+    room:setBanner("@&secondGenerals", nonlord_generals)
     room:askForChooseKingdom(room.players)
   end
 
@@ -160,7 +161,7 @@ local m_1v1_rule = fk.CreateTriggerSkill{
     if event == fk.DrawInitialCards then
       data.num = math.min(player.maxHp, 5)
     elseif event == fk.DrawNCards then
-      if player.seat == 1 and player.tag[self.name] == nil then
+      if player.role == "lord" and player.tag[self.name] == nil then
         player.tag[self.name] = 1
         room:setTag("SkipNormalDeathProcess", true)
         data.n = data.n - 1
@@ -168,16 +169,9 @@ local m_1v1_rule = fk.CreateTriggerSkill{
     elseif event == fk.GameOverJudge then
       room:setTag("SkipGameRule", true)
       local body = room:getPlayerById(data.who)
-      local num, num2
-      for _, p in ipairs(room.players) do
-        local n = 5 - #room:getTag("1v1_generals")[p.seat]
-        if p.dead then n = n + 1 end
-        if p.role == "lord" then
-          num = n
-        else
-          num2 = n
-        end
-      end
+      if body.rest > 0 then return end
+      local num, num2 = tonumber(room:getBanner("@firstFallen")[1]), tonumber(room:getBanner("@secondFallen")[1])
+      if body.role == "lord" then num = num + 1 else num2 = num2 + 1 end
       room:setBanner("@firstFallen", tostring(num) .. " / 3")
       room:setBanner("@secondFallen", tostring(num2) .. " / 3")
       room:doBroadcastNotify("ShowToast", Fk:translate("1v1 score") .. tostring(num) .. ":" .. tostring(num2) .. Fk:translate("_1v1 score"))
@@ -185,14 +179,14 @@ local m_1v1_rule = fk.CreateTriggerSkill{
       room:gameOver(body.next.role)
       return true
     elseif event == fk.GameStart then
-      room.logic:trigger("fk.Debut", player, event, false)
-    else
+      room.logic:trigger("fk.Debut", player, player.general, false)
+      room.logic:trigger("fk.Debut", player.next, player.general, false)
+    elseif event == fk.BuryVictim then
       room:setTag("SkipGameRule", true)
       local body = room:getPlayerById(data.who)
-      local all_generals = room:getTag("1v1_generals")
-      local generals = all_generals[body.seat]
+      local generals = room:getBanner(body.role == "lord" and "@&firstGenerals" or "@&secondGenerals")
       body:bury()
-
+      if body.rest > 0 then return end
       local current = room.logic:getCurrentEvent()
       local last_event
       if room.current == body then
@@ -210,11 +204,17 @@ local m_1v1_rule = fk.CreateTriggerSkill{
         local g = room:askForGeneral(body, generals, 1)
         if type(g) == "table" then g = g[1] end
         rm(generals, g)
+        --[[
         local og = Fk.generals[body.general]
         local to_rm = table.map(og.related_skills, Util.NameMapper)
         table.insertTable(to_rm, og.related_other_skills)
+        --]]
+        local to_rm = table.filter(body.player_skills, function(s)
+          return not s.attached_equip and s.name[#s.name] ~= "&" -- 不是装备技和按钮的全图图了
+        end)
         room:handleAddLoseSkills(body, table.concat(
-          table.map(to_rm, function(s) return "-" .. s end), "|"), nil, true)
+          table.map(to_rm, function(s) return "-" .. s.name end), "|"), nil, true)
+        room:resumePlayerArea(target, {Player.WeaponSlot, Player.ArmorSlot, Player.OffensiveRideSlot, Player.DefensiveRideSlot, Player.TreasureSlot, Player.JudgeSlot}) -- 全部恢复
 
         room:changeHero(body, g, true, false, true)
 
@@ -224,9 +224,9 @@ local m_1v1_rule = fk.CreateTriggerSkill{
         room:setPlayerProperty(body, "kingdom", Fk.generals[g].kingdom)
         room:askForChooseKingdom({body})
         room:setPlayerProperty(body, "hp", Fk.generals[g].hp)
-        room:setTag("1v1_generals", body.seat == 1 and {generals, all_generals[2]} or {all_generals[1], generals})
+        room:setBanner(body.role == "lord" and "@&firstGenerals" or "@&secondGenerals", generals)
         drawInit(room, body, math.min(body.maxHp, 5))
-        room.logic:trigger("fk.Debut", body, event, false)
+        room.logic:trigger("fk.Debut", body, player.general, false)
       end)
     end
   end,
@@ -254,6 +254,10 @@ Fk:loadTranslationTable{
   ["_1v1 score"] = " 后手",
   ["@firstFallen"] = "先手阵亡数",
   ["@secondFallen"] = "后手阵亡数",
+  ["@&firstGenerals"] = "先手备选区",
+  ["@&secondGenerals"] = "后手备选区",
+  ["@&firstExiled"] = "先手流放区",
+  ["@&secondExiled"] = "后手流放区",
 
   [":m_1v1_mode"] = desc_1v1,
 }
