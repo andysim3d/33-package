@@ -136,29 +136,15 @@ local vanished_dragon_getLogic = function()
 
     room:doBroadcastNotify("ShowToast", "<b>" .. lord._splayer:getScreenName() .. "</b>" .. Fk:translate("vd_intro"))
 
-    local lord_generals = {}
-
     if lord ~= nil then
-      local generals = {}
-      local lordlist = {}
-      local lordpools = {}
-      table.insertTable(generals, Fk:getGeneralsRandomly(generalNum, Fk:getAllGenerals(), table.map(generals, function (g)
-        return g.name
-      end)))
-      for _, general in ipairs({"cuiyan", "ty__huangfusong"}) do
-        if not table.contains(room.disabled_packs, Fk.generals[general].package.name) and
-          not table.contains(room.disabled_generals, general) and not table.find(generals, function(g)
-            return g.trueName == "cuiyan" or g.trueName == "huangfusong"
-          end) then
-          table.insert(lordlist, general)
+      local lord_pool = {}
+      for _, name in ipairs(room.general_pile) do
+        if name == "cuiyan" or name == "ty__huangfusong" then
+          table.insert(lord_pool, name)
         end
       end
-      for i = 1, #generals do
-        generals[i] = generals[i].name
-      end
-      lordpools = table.simpleClone(generals)
-      table.insertTable(lordpools, lordlist)
-      lord_generals = room:askForGeneral(lord, lordpools, n)
+      table.insertTable(lord_pool, table.random(room.general_pile, generalNum))
+      local lord_generals = room:askForGeneral(lord, lord_pool, n)
       local lord_general, deputy
       if type(lord_generals) == "table" then
         deputy = lord_generals[2]
@@ -166,6 +152,9 @@ local vanished_dragon_getLogic = function()
       else
         lord_general = lord_generals
         lord_generals = {lord_general}
+      end
+      for _, g in ipairs(lord_generals) do
+        table.removeOne(room.general_pile, g)
       end
 
       room:setPlayerGeneral(lord, lord_general, true)
@@ -177,12 +166,11 @@ local vanished_dragon_getLogic = function()
     end
 
     local nonlord = room:getOtherPlayers(lord, true)
-    local generals = Fk:getGeneralsRandomly(#nonlord * generalNum, nil, lord_generals)
-    table.shuffle(generals)
+    local generals = table.random(room.general_pile, #nonlord * generalNum)
     for _, p in ipairs(nonlord) do
       local arg = {}
       for i = 1, generalNum do
-        table.insert(arg, table.remove(generals, 1).name)
+        table.insert(arg, table.remove(generals, 1))
       end
       p.request_data = json.encode{ arg, n }
       p.default_reply = table.random(arg, n)
@@ -192,16 +180,19 @@ local vanished_dragon_getLogic = function()
     room:doBroadcastRequest("AskForGeneral", nonlord)
 
     for _, p in ipairs(nonlord) do
+      local mainGeneral, deputyGeneral
       if p.general == "" and p.reply_ready then
-        local generals = json.decode(p.client_reply)
-        local general = generals[1]
-        local deputy = generals[2]
-        room:setPlayerGeneral(p, general, true, true)
-        room:setDeputyGeneral(p, deputy)
+        local _generals = json.decode(p.client_reply)
+        mainGeneral = _generals[1]
+        deputyGeneral = _generals[2]
       else
-        room:setPlayerGeneral(p, p.default_reply[1], true, true)
-        room:setDeputyGeneral(p, p.default_reply[2])
+        mainGeneral = p.default_reply[1]
+        deputyGeneral = p.default_reply[2]
       end
+      room:setPlayerGeneral(p, mainGeneral, true, true)
+      room:setDeputyGeneral(p, deputyGeneral)
+      table.removeOne(room.general_pile, mainGeneral)
+      table.removeOne(room.general_pile, deputyGeneral)
       p.default_reply = ""
     end
 
