@@ -56,9 +56,7 @@ local ganran = fk.CreateFilterSkill{
   name = "zombie_ganran",
   card_filter = function(self, to_select, player)
     return player:hasSkill(self) and to_select.type == Card.TypeEquip and
-      not table.contains(player.player_cards[Player.Equip], to_select.id) and
-      not table.contains(player.player_cards[Player.Judge], to_select.id)
-      -- table.contains(player.player_cards[Player.Hand], to_select.id) --不能用getCardArea！
+    table.contains(player.player_cards[Player.Hand], to_select.id)
   end,
   view_as = function(self, to_select)
     local card = Fk:cloneCard("iron_chain", to_select.suit, to_select.number)
@@ -74,10 +72,9 @@ zombie:addSkill(ganran)
 Fk:loadTranslationTable{
   ["zombie"] = "僵尸",
   ["zombie_xunmeng"] = "迅猛",
-  [":zombie_xunmeng"] = "锁定技，你的【杀】造成伤害时，令此伤害+1，" ..
-    "若此时你的体力值大于1，则你失去1点体力。",
+  [":zombie_xunmeng"] = "锁定技，你的【杀】造成伤害时，令此伤害+1，若此时你的体力值大于1，则你失去1点体力。",
   ["zombie_zaibian"] = "灾变",
-  [":zombie_zaibian"] = "锁定技，摸牌阶段，若人类玩家数-僵尸玩家数+1大于0，则你多摸该数目的牌。",
+  [":zombie_zaibian"] = "锁定技，摸牌阶段，若X大于0，则你多摸X张牌（X为人类玩家数-僵尸玩家数+1）。",
   ["zombie_ganran"] = "感染",
   [":zombie_ganran"] = "锁定技，你手牌中的装备牌视为【铁锁连环】。",
 }
