@@ -42,15 +42,44 @@ local m_2v2_getLogic = function()
 
   function m_2v2_logic:chooseGenerals()
     local room = self.room
-    local generalNum = room.settings.generalNum
+    local generalNum = math.min(room.settings.generalNum, 9)
+    error("Hello")
 
     local lord = room:getLord()
     room.current = lord
     lord.role = self.start_role
 
     local nonlord = room.players
-    local generals = Fk:getGeneralsRandomly(#nonlord * generalNum)
+    local generals = table.map(Fk:getGeneralsRandomly(#nonlord * generalNum), Util.NameMapper)
     table.shuffle(generals)
+    local t1 = table.slice(generals, 1, generalNum + 1)
+    local t2 = table.slice(generals, generalNum + 1, generalNum * 2 + 1)
+    local t3 = table.slice(generals, generalNum * 2 + 1, generalNum * 3 + 1)
+    local t4 = table.slice(generals, generalNum * 3 + 1, generalNum * 4 + 1)
+    room:askForMiniGame(nonlord, "AskForGeneral", "2v2_sel", {
+      [nonlord[1].id] = {
+        friend_id = nonlord[4].id,
+        me = t1, friend = t4,
+      },
+      [nonlord[2].id] = {
+        friend_id = nonlord[3].id,
+        me = t2, friend = t3,
+      },
+      [nonlord[3].id] = {
+        friend_id = nonlord[2].id,
+        me = t3, friend = t2,
+      },
+      [nonlord[4].id] = {
+        friend_id = nonlord[1].id,
+        me = t4, friend = t1,
+      },
+    })
+
+    for _, p in ipairs(nonlord) do
+      local general = json.decode(p.client_reply)
+      room:setPlayerGeneral(p, general, true, true)
+    end
+    --[[
     for _, p in ipairs(nonlord) do
       local arg = {}
       for i = 1, generalNum do
@@ -70,6 +99,7 @@ local m_2v2_getLogic = function()
       end
       p.default_reply = ""
     end
+    --]]
 
     room:askForChooseKingdom(nonlord)
   end
@@ -146,6 +176,20 @@ Fk:loadTranslationTable{
   [":m_2v2_mode"] = desc_2v2,
   ["time limitation: 2 min"] = "游戏时长达到2分钟",
   ["2v2: left you alive"] = "你所处队伍仅剩你存活",
+}
+
+Fk:addMiniGame{
+  name = "2v2_sel",
+  qml_path = "packages/gamemode/2v2",
+  default_choice = function(player, data)
+    return data.me[1]
+  end,
+  update_func = function(player, data)
+    local room = player.room
+    local d = player.mini_game_data.data
+    local friend = room:getPlayerById(d.friend_id)
+    friend:doNotify("UpdateMiniGame", json.encode(data))
+  end,
 }
 
 return m_2v2_mode
