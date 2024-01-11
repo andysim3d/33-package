@@ -352,7 +352,7 @@ local vanished_dragon = fk.CreateGameMode{
   rule = vanished_dragon_rule,
   logic = vanished_dragon_getLogic,
   surrender_func = function(self, playedTime)
-    return Fk.game_modes["aaa_role_mode"]:surrenderFunc(self, playedTime)
+    return Fk.game_modes["aaa_role_mode"].surrenderFunc(self, playedTime)
   end,
 }
 
