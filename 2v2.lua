@@ -43,7 +43,6 @@ local m_2v2_getLogic = function()
   function m_2v2_logic:chooseGenerals()
     local room = self.room
     local generalNum = math.min(room.settings.generalNum, 9)
-    error("Hello")
 
     local lord = room:getLord()
     room.current = lord
