@@ -13,7 +13,7 @@ local desc_2v2 = [[
 ]]
 
 local m_2v2_getLogic = function()
-  local m_2v2_logic = GameLogic:subclass("m_2v2_logic")
+  local m_2v2_logic = GameLogic:subclass("m_2v2_logic") ---@class GameLogic
 
   function m_2v2_logic:assignRoles()
     local room = self.room
@@ -158,7 +158,7 @@ local m_2v2_mode = fk.CreateGameMode{
       return ""
     end
     local room = victim.room
-    local alive = table.filter(room.players, function(p)
+    local alive = table.filter(room.players, function(p) ---@type Player[]
       return not p.surrendered and not (p.dead and p.rest == 0)
     end)
     local winner = alive[1].role

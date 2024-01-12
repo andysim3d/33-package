@@ -5,11 +5,11 @@ local desc_brawl = [[
 
   本模式为**斗地主模式的变种模式**，玩家需要自己搭配技能以取得游戏的胜利。游戏由三人进行，一人扮演地主（主公），其他两人扮演农民（反贼）。
 
-  （暂无）游戏开始后，**每位玩家会随机到10个待选技能**，玩家需要根据这些技能，依次叫价1遍，**价高者为地主，额外抽取5个技能**。
+  （暂无）<s>游戏开始后，**每位玩家会随机到10个待选技能**，玩家需要根据这些技能，依次叫价1遍，**价高者为地主，额外抽取5个技能**</s>。
 
-  （暂行）随机一名玩家成为**地主**，随机抽取15个技能；2名农民各随机抽取10个技能。
+  （暂行）随机一名玩家成为**地主**，随机抽取**X*1.5**（向下取整）个技能；2名**农民**各随机抽取**X**个技能。（X为本房间的“选将数目”）
 
-  **地主从总计15个技能中挑选3个作为本局的技能；农民需要从10个技能中挑选2个作为本局的技能**。
+  **地主从中挑选3个作为本局的技能；农民从中挑选2个作为本局的技能**。
 
   地主5点体力上限，农民4点体力上限。
   
@@ -29,12 +29,12 @@ local desc_brawl = [[
 ]]
 
 local ban_skills = {
-  "fenyong",
-  "duorui", "quanfeng", "zhongliu", "yongdi", "chuanwu", "tuogu", "zeyue", "n_dianlun"
+  "fenyong", -- 弱智技能
+  "duorui", "quanfeng", "zhongliu", "yongdi", "chuanwu", "tuogu", "zeyue", "n_dianlun" -- 和武将牌上的技能有关的
 }
 
 local brawl_getLogic = function()
-  local brawl_logic = GameLogic:subclass("brawl_logic")
+  local brawl_logic = GameLogic:subclass("brawl_logic") ---@class GameLogic
 
   function brawl_logic:initialize(room)
     GameLogic.initialize(self, room)
@@ -43,6 +43,7 @@ local brawl_getLogic = function()
 
   function brawl_logic:chooseGenerals()
     local room = self.room ---@type Room
+    room:doBroadcastNotify("ShowToast", Fk:translate("#BrawlInitialNotice"))
     for _, p in ipairs(room.players) do
       p.role_shown = true
       room:broadcastProperty(p, "role")
@@ -51,15 +52,31 @@ local brawl_getLogic = function()
     local lord = room:getLord()
     room.current = lord
     local players = room.players
-    local skill_pool = {}
-    for _, general in pairs(Fk:getAllGenerals()) do
-      for _, skill in ipairs(general.skills) do
-        if not skill.lordSkill and #skill.attachedKingdom == 0 and not table.contains(ban_skills, skill.name) then
-          table.insert(skill_pool, skill.name)
-        end
+    local skill_num = room.settings.generalNum -- 技能池数量由选将数决定，农民等于，地主1.5倍（向下取整）
+    local total = math.floor(skill_num * 3.5)
+    local skill_pool, general_pool = {}, {}
+    local i = 0
+    local function insertSkill(skill, skills)
+      if not skill.lordSkill and #skill.attachedKingdom == 0 and not table.contains(ban_skills, skill.name) and not table.contains(skill_pool, skill) then
+        table.insert(skills, skill.name)
       end
     end
-    skill_pool = table.random(skill_pool, 35)
+    for _ = 1, 999 do
+      local general = Fk:getGeneralsRandomly(1)[1]
+      local skills = {}
+      table.forEach(general.skills, function(s) insertSkill(s, skills) end)
+      local skill = table.random(skills)
+      if skill then
+        i = i + 1
+        -- table.insert(skill_pool, {skill, general.name})
+        table.insert(skill_pool, skill)
+        table.insert(general_pool, general.name)
+        if i == total then break end
+      end
+    end
+    if i < total then
+      room:gameOver("")
+    end
 
     for k, p in ipairs(players) do
       local avatar = p._splayer:getAvatar()
@@ -71,13 +88,20 @@ local brawl_getLogic = function()
       room:setPlayerProperty(p, "maxHp", p.role == "lord" and 5 or 4)
       room:setPlayerProperty(p, "hp", p.role == "lord" and 5 or 4)
 
-      local skills = table.slice(skill_pool, 10 * k - 9 , 10 * k + 1)
-      if p.role == "lord" then table.insertTable(skills, table.slice(skill_pool, 31 , 36)) end
+      k = 4 - p.seat
+      local skills, generals
+      if k == 3 then
+        skills = table.slice(skill_pool, skill_num * 2 + 1, total + 1)
+        generals = table.slice(general_pool, skill_num * 2 + 1, total + 1)
+      else
+        skills = table.slice(skill_pool, skill_num * (k - 1) + 1 , skill_num * k + 1)
+        generals = table.slice(general_pool, skill_num * (k - 1) + 1 , skill_num * k + 1)
+      end
       local num = p.role == "lord" and 3 or 2
       p.request_data = json.encode({
         path = "packages/utility/qml/ChooseSkillBox.qml",
         data = {
-          skills, num, num, "#brawl-choose:::" .. tostring(num)
+          skills, num, num, "#brawl-choose:::" .. tostring(num), generals
         },
       })
       p.default_reply = table.random(skills, num)
@@ -136,6 +160,7 @@ local brawl_getLogic = function()
 
   function brawl_logic:attachSkillToPlayers()
     local room = self.room
+    room:doBroadcastNotify("ShowToast", Fk:translate("#BrawlInitialNotice"))
     for _, p in ipairs(room.alive_players) do
       local skills = table.concat(p:getMark("_brawl_skills"), "|")
       if p.role == "lord" then
@@ -206,6 +231,8 @@ Fk:loadTranslationTable{
   --]]
 
   [":brawl_mode"] = desc_brawl,
+
+  ["#BrawlInitialNotice"] = "修订：农民抽取技能数为房间“<b>可选武将数</b>”，地主多拿一半（向下取整）",
 }
 
 return brawl_mode

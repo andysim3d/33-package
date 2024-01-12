@@ -292,7 +292,7 @@ local v11__liewei = fk.CreateTriggerSkill{
   anim_type = "drawcard",
   events = {fk.Death},
   can_trigger = function(self, event, target, player, data)
-    return player:hasSkill(self) and data.damage and data.damage.from and data.damage.from == player
+    return player:hasSkill(self) and data.damage and data.damage.from and data.damage.from == player and player ~= target
   end,
   on_use = function(self, event, target, player, data)
     player:drawCards(3, self.name)
@@ -306,6 +306,12 @@ Fk:loadTranslationTable{
   [":v11__cuorui"] = "锁定技，当你登场时，你摸X-2张牌（X为你的备用武将数）；你跳过登场后的第一个判定阶段。",
   ["v11__liewei"] = "裂围",
   [":v11__liewei"] = "当你杀死对手的角色后，你可以摸三张牌。",
+
+  ["$v11__cuorui1"] = "区区乌合之众，如何困得住我？！",
+  ["$v11__cuorui2"] = "今日就让你见识见识老牛的厉害！",
+  ["$v11__liewei1"] = "敌阵已乱，速速突围！",
+  ["$v11__liewei2"] = "杀你，如同捻死一只蚂蚁！",
+  ["~v11__niujin"] = "这包围圈太厚，老牛，尽力了……",
 }
 
 Fk:loadTranslationTable{
@@ -327,6 +333,12 @@ Fk:loadTranslationTable{
 --张辽 许褚 甄姬 夏侯渊 刘备 关羽 马超 黄月英 魏延 姜维 孟获 祝融 孙权 甘宁 吕蒙 大乔 孙尚香 貂蝉 华佗 庞德
 
 Fk:loadTranslationTable{
+  ["v11__liubei"] = "刘备",
+  ["v11__renwang"] = "仁望",
+  [":v11__renwang"] = "当对手于其出牌阶段内对你使用【杀】或普通锦囊牌时，若本阶段你已成为过上述牌的目标，你可以弃置其一张牌。",
+}
+
+Fk:loadTranslationTable{
   ["v11__xiangchong"] = "向宠",
   ["v11__changjun"] = "畅军",
   [":v11__changjun"] = "出牌阶段开始时，你可以将至多X张牌置于你的武将牌上（X为你的登场角色序数），若如此做，直到你下回合开始，你可以将与“畅军”牌"..
@@ -335,12 +347,74 @@ Fk:loadTranslationTable{
   [":v11__aibing"] = "当你死亡时，你可以令你下一名武将登场时视为使用一张【杀】。",
 }
 
+local v11__sunyi = General(extension, "v11__sunyi", "wu", 4)
+v11__sunyi.hidden = true
+local v11__guolie = fk.CreateTriggerSkill{
+  name = "v11__guolie",
+  anim_type = "offensive",
+  events = {fk.CardEffectCancelledOut},
+  can_trigger = function(self, event, target, player, data)
+    return target == player and player:hasSkill(self) and data.card.trueName == "slash"
+  end,
+  on_use = function(self, event, target, player, data)
+    local room = player.room
+    local card = Fk:getCardById(room:getNCards(1)[1])
+    room:moveCardTo(card, Card.Processing, nil, fk.ReasonJustMove)
+    if U.canUseCard(room, player, card, true) then
+      player.special_cards["v11__guolie"] = {card.id}
+      player:doNotify("ChangeSelf", json.encode {
+        id = player.id,
+        handcards = player:getCardIds("h"),
+        special_cards = player.special_cards,
+      })
+      room:setPlayerMark(player, "v11__guolie_card", card.id)
+      local success, dat = room:askForUseActiveSkill(player, "v11__guolie_vs", "#v11__guolie-use:::" .. card:toLogString(), false)
+      room:setPlayerMark(player, "v11__guolie_card", 0)
+      player.special_cards["v11__guolie"] = {}
+      player:doNotify("ChangeSelf", json.encode {
+        id = player.id,
+        handcards = player:getCardIds("h"),
+        special_cards = player.special_cards,
+      })
+      if success then
+        local c = Fk.skills["v11__guolie_vs"]:viewAs(dat.cards)
+        room:useCard{
+          from = player.id,
+          tos = table.map(dat.targets, function(id) return {id} end),
+          card = c,
+          extraUse = true,
+        }
+      end
+    elseif card.trueName == "slash" then
+      room:obtainCard(player, card)
+    end
+  end,
+}
+local v11__guolie_vs = fk.CreateViewAsSkill{
+  name = "v11__guolie_vs",
+  expand_pile = "v11__guolie",
+  card_filter = function(self, to_select, selected)
+    if #selected == 0 then
+      return Self:getMark("v11__guolie_card") == to_select
+    end
+  end,
+  view_as = function(self, cards)
+    if #cards == 1 then
+      return Fk:getCardById(cards[1])
+    end
+  end,
+}
+Fk:addSkill(v11__guolie_vs)
+v11__sunyi:addSkill(v11__guolie)
 Fk:loadTranslationTable{
   ["v11__sunyi"] = "孙翊",
   ["v11__guolie"] = "果烈",
   [":v11__guolie"] = "当你使用【杀】被【闪】抵消时，你可以亮出牌堆顶牌，若你：可以使用此牌，则使用之；不能使用且为【杀】，你获得之。",
   ["v11__hunbi"] = "魂弼",
   [":v11__hunbi"] = "当你死亡时，若对手的流放区未饱和，你可以令你下一名武将登场时选择一项：1.视为使用一张【杀】；2.摸一张牌；3.对对手执行至多两次流放。",
+
+  ["#v11__guolie-use"] = "果烈：你使用 %arg",
+  ["v11__guolie_vs"] = "果烈",
 }
 
 Fk:loadTranslationTable{
@@ -360,7 +434,7 @@ local v11__chengji = fk.CreateTriggerSkill{
   can_trigger = function(self, event, target, player, data)
     if target == player and player:hasSkill(self) and data.card and #player:getPile(self.name) < 4 then
       local room = player.room
-      local subcards = data.card:isVirtual() and data.card.subcards or {data.card.id}
+      local subcards = Card:getIdList(data.card)
       return #subcards > 0 and table.every(subcards, function(id) return room:getCardArea(id) == Card.Processing end)
     end
   end,
