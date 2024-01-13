@@ -57,8 +57,9 @@ local brawl_getLogic = function()
     local skill_pool, general_pool = {}, {}
     local i = 0
     local function insertSkill(skill, skills)
-      if not skill.lordSkill and #skill.attachedKingdom == 0 and not table.contains(ban_skills, skill.name) and not table.contains(skill_pool, skill) then
-        table.insert(skills, skill.name)
+      local skill_name = skill.name
+      if not skill.lordSkill and #skill.attachedKingdom == 0 and not table.contains(ban_skills, skill_name) and not table.contains(skill_pool, skill_name) then
+        table.insert(skills, skill_name)
       end
     end
     for _ = 1, 999 do

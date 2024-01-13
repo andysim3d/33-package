@@ -144,7 +144,7 @@ local chaos_getLogic = function()
   return chaos_logic
 end
 
-local chaos_event = { "luanwu", "generous_reward", "burning_one's_boats", "leveling_the_blades", "sweeping_all", "starvation", "poisoned_banquet" }
+local chaos_event = { "chaos_luanwu", "generous_reward", "burning_one's_boats", "leveling_the_blades", "sweeping_all", "starvation", "poisoned_banquet" }
 
 local chaos_rule = fk.CreateTriggerSkill{
   name = "#chaos_rule",
@@ -154,15 +154,15 @@ local chaos_rule = fk.CreateTriggerSkill{
     local room = player.room
     if event == fk.GameStart then return player.seat == 1 end
     if target ~= player then return false end
-    local num = room:getTag("chaos_mode_event")
+    local num = room:getBanner("@[:]chaos_mode_event")
     if event == fk.TurnStart then
-      return num == 3
+      return num == "burning_one's_boats"
     elseif event == fk.TurnEnd then
-      return num == 4
+      return num == "leveling_the_blades"
     elseif event == fk.DamageInflicted then
-      return num == 5
+      return num == "sweeping_all"
     elseif event == fk.RoundEnd then
-      return num == 6 or room:getTag("RoundCount") == 1
+      return num == "starvation" or room:getTag("RoundCount") == 1
     elseif event == fk.HpChanged or event == fk.MaxHpChanged then
       return room:getTag("RoundCount") == 1
     end
@@ -188,7 +188,7 @@ local chaos_rule = fk.CreateTriggerSkill{
       if data.damage then
         local killer = data.damage.from
         if killer and not killer.dead then --……
-          local invoked = room:getTag("chaos_mode_event") == 2
+          local invoked = room:getBanner("@[:]chaos_mode_event") == "generous_reward"
           killer:drawCards(invoked and 6 or 3, "kill")
           if not killer.dead then
             room:changeMaxHp(killer, invoked and 2 or 1)
@@ -201,9 +201,11 @@ local chaos_rule = fk.CreateTriggerSkill{
         room:doBroadcastNotify("ShowToast", Fk:translate("chaos_fisrt_round"))
         index = 1
       end
-      room:setTag("chaos_mode_event", index)
-      for _, p in ipairs(room.alive_players) do
-        room:setPlayerMark(p, "@chaos_mode_event", chaos_event[index])
+      room:setBanner("@[:]chaos_mode_event", chaos_event[index])
+      if index == 7 then
+        for _, p in ipairs(room.alive_players) do
+          room:setPlayerMark(p, "_chaos_mode_event-round", "poisoned_banquet")
+        end
       end
       room:notifyMoveFocus(room.alive_players, self.name)
       room:doBroadcastNotify("ShowToast", Fk:translate("chaos_e: " .. tostring(index)))
@@ -308,7 +310,7 @@ local chaos_rule = fk.CreateTriggerSkill{
             room:handleAddLoseSkills(p, "-bazhen", nil, false, false)
           end
         end
-      else --第一轮一定是乱武
+      else
         local num = 998
         local targets = {}
         for _, p in ipairs(room.alive_players) do
@@ -338,7 +340,7 @@ local chaos_rule_filter = fk.CreateFilterSkill{
   anim_type = "negative",
   global = true,
   card_filter = function(self, to_select, player)
-    return player:getMark("@chaos_mode_event") == "poisoned_banquet" and to_select.name == "peach"
+    return player:getMark("_chaos_mode_event-round") == "poisoned_banquet" and to_select.name == "peach"
   end,
   view_as = function(self, to_select)
     local card = Fk:cloneCard("poison", to_select.suit, to_select.number)
@@ -384,17 +386,25 @@ Fk:loadTranslationTable{
   ["chaos_e: 5"] = "事件：横扫千军。本轮中，所有伤害值+1。",
   ["chaos_e: 6"] = "事件：饿莩载道。本轮结束时，所有手牌最少的角色失去X点体力。（X为轮数）",
   ["chaos_e: 7"] = "事件：宴安鸩毒。本轮中，所有的【桃】均视为【毒】。（【毒】：锁定技，当此牌正面朝上离开你的手牌区后，你失去1点体力。出牌阶段，你可对自己使用。）",
-  ["@chaos_mode_event"] = "事件",
+  ["@[:]chaos_mode_event"] = "事件",
+  ["chaos_luanwu"] = "乱武",
+  [":chaos_luanwu"] = "从随机一名角色开始，所有角色需对距离最近的一名角色使用一张【杀】，否则失去1点体力。",
   ["generous_reward"] = "重赏",
+  [":generous_reward"] = "本轮中，击杀角色奖励翻倍。",
   ["burning_one's_boats"] = "破釜沉舟",
+  [":burning_one's_boats"] = "一名角色的回合开始时，其失去1点体力，摸三张牌。",
   ["leveling_the_blades"] = "横刀跃马",
+  [":leveling_the_blades"] = "每个回合结束时，所有装备最少的角色失去1点体力，随机将一张装备牌置入其装备区。",
   ["sweeping_all"] = "横扫千军",
+  [":sweeping_all"] = "本轮中，所有伤害值+1。",
   ["starvation"] = "饿莩载道",
+  [":starvation"] = "本轮结束时，所有手牌最少的角色失去X点体力。（X为轮数）",
   ["poisoned_banquet"] = "宴安鸩毒",
+  [":poisoned_banquet"] = "本轮中，所有的【桃】均视为【毒】。<br/>（【毒】：锁定技，当此牌正面朝上离开你的手牌区后，你失去1点体力。出牌阶段，你可对自己使用。）",
   ["#chaos_mode_event_4_log"] = "%from 由于“%arg”，将 %arg2 置入装备区",
   ["#chaos_rule_filter"] = "宴安鸩毒",
   ["chaos_mode_event_log"] = "本轮的“文和乱武” %arg",
-  ["chaos_intro"] = "一人一队，文和乱武的大吃鸡时代，你能入主长安吗？<br>每一轮开始会有随机事件发生，祝你好运。（贾诩的谜之笑容）",
+  ["chaos_intro"] = "<b>一人一队</b>，文和乱武的大吃鸡时代，你能入主长安吗？<br><b>每轮会有随机事件</b>，可点击<b>左上角</b>查看详情，祝你好运。（贾诩的谜之笑容）",
   ["chaos_fisrt_round"] = "第一轮时，已受伤角色视为拥有〖八阵〗。",
 }
 
