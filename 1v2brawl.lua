@@ -29,7 +29,7 @@ local desc_brawl = [[
 ]]
 
 local ban_skills = {
-  "fenyong", -- 弱智技能
+  "fenyong", "danggu",-- 弱智技能
   "duorui", "quanfeng", "zhongliu", "yongdi", "chuanwu", "tuogu", "zeyue", "n_dianlun" -- 和武将牌上的技能有关的
 }
 
