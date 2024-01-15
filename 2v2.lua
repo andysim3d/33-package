@@ -30,11 +30,13 @@ local m_2v2_getLogic = function()
       room:broadcastProperty(p, "role")
     end
 
+    --[[
     room.players[1]:addBuddy(room.players[4])
     room.players[4]:addBuddy(room.players[1])
     room.players[2]:addBuddy(room.players[3])
     room.players[3]:addBuddy(room.players[2])
-
+    --]]
+    --
     self.start_role = roles[1]
     -- for adjustSeats
     room.players[1].role = "lord"
