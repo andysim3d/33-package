@@ -2,6 +2,7 @@
 
 local extension = Package:new("gamemode", Package.SpecialPack)
 
+extension:addGameMode(require "packages/gamemode/role")
 extension:addGameMode(require "packages/gamemode/1v2")
 extension:addGameMode(require "packages/gamemode/1v2brawl")
 extension:addGameMode(require "packages/gamemode/2v2")
