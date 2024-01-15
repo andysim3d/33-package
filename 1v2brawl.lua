@@ -58,16 +58,17 @@ local brawl_getLogic = function()
     local i = 0
     local function insertSkill(skill, skills)
       local skill_name = skill.name
-      if not skill.lordSkill and #skill.attachedKingdom == 0 and not table.contains(ban_skills, skill_name) and not table.contains(skill_pool, skill_name) then
+      if not skill.lordSkill and #skill.attachedKingdom == 0 then --and not table.contains(ban_skills, skill_name) and not table.contains(skill_pool, skill_name) then
         table.insert(skills, skill_name)
       end
     end
+    local all_generals = Fk:getAllGenerals() -- replace Engine:getGeneralsRandomly
     for _ = 1, 999 do
-      local general = Fk:getGeneralsRandomly(1)[1]
+      local general = table.random(all_generals)
       local skills = {}
       table.forEach(general.skills, function(s) insertSkill(s, skills) end)
       local skill = table.random(skills)
-      if skill then
+      if skill and not table.contains(ban_skills, skill) and not table.contains(skill_pool, skill) then
         i = i + 1
         -- table.insert(skill_pool, {skill, general.name})
         table.insert(skill_pool, skill)
