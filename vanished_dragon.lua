@@ -122,6 +122,17 @@ local vanished_dragon_getLogic = function()
 
   function vanished_dragon_logic:chooseGenerals()
     local room = self.room
+
+    local generals_blacklist = {
+      "cuiyan", "ty__huangfusong", -- 明忠备选
+      "js__caocao", "js__zhugeliang", "ol__dongzhao","std__yuanshu", "huanghao", -- 暴露暗主
+    }
+    for i = #room.general_pile, 1, -1 do
+      if table.contains(generals_blacklist, room.general_pile[i]) then
+        table.remove(room.general_pile, i)
+      end
+    end
+
     local generalNum = room.settings.generalNum
     local n = room.settings.enableDeputy and 2 or 1
     local lord = room:getLord()
@@ -137,12 +148,7 @@ local vanished_dragon_getLogic = function()
     room:doBroadcastNotify("ShowToast", "<b>" .. lord._splayer:getScreenName() .. "</b>" .. Fk:translate("vd_intro"))
 
     if lord ~= nil then
-      local lord_pool = {}
-      for _, name in ipairs(room.general_pile) do
-        if name == "cuiyan" or name == "ty__huangfusong" then
-          table.insert(lord_pool, name)
-        end
-      end
+      local lord_pool = {"cuiyan", "ty__huangfusong"}
       table.insertTable(lord_pool, table.random(room.general_pile, generalNum))
       local lord_generals = room:askForGeneral(lord, lord_pool, n)
       local lord_general, deputy
