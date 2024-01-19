@@ -103,6 +103,7 @@ local m_2v2_getLogic = function()
     --]]
 
     room:askForChooseKingdom(nonlord)
+    room:setTag("SkipNormalDeathProcess", true)
   end
 
   return m_2v2_logic
@@ -119,7 +120,6 @@ local m_2v2_rule = fk.CreateTriggerSkill{
     if event == fk.DrawNCards then
       if player.seat == 1 and player:getMark(self.name) == 0 then
         room:addPlayerMark(player, self.name, 1)
-        room:setTag("SkipNormalDeathProcess", true)
         data.n = data.n - 1
       end
     elseif event == fk.DrawInitialCards then
