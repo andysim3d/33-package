@@ -411,6 +411,7 @@ local vd_sheshen = fk.CreateTriggerSkill{ --锁定技，主公处于濒死状态
   frequency = Skill.Compulsory,
   can_trigger = function(self, event, target, player, data)
     return player:hasSkill(self) and target.role == "lord" and target.hp <= 0 and target.dying
+    and not data.ignoreDeath and player:usedSkillTimes(self.name, Player.HistoryGame) == 0
   end,
   on_use = function(self, event, target, player, data)
     local room = player.room
@@ -424,7 +425,7 @@ local vd_sheshen = fk.CreateTriggerSkill{ --锁定技，主公处于濒死状态
     local dummy = Fk:cloneCard("dilu")
     dummy:addSubcards(player:getCardIds{Player.Hand, Player.Equip})
     if #dummy.subcards > 0 then
-      room:obtainCard(target, dummy, false, fk.ReasonJustMove)
+      room:obtainCard(target, dummy, false, fk.ReasonPrey)
     end
     if not player.dead then
       room:killPlayer({who = player.id})
