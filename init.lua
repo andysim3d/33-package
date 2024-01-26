@@ -22,6 +22,7 @@ local variation_cards = require "packages/gamemode/variation_cards"
 
 local gamemode_generals = require "packages/gamemode/gamemode_generals"
 
+Fk:loadTranslationTable{ ["gamemode"] = "游戏模式" }
 Fk:loadTranslationTable(require 'packages/gamemode/i18n/en_US', 'en_US')
 
 return {
