@@ -19,19 +19,13 @@ local role_mode = fk.CreateGameMode{
         lord =  temp
       end
       room.current = lord
-      
-      local lord_generals = room:getNGenerals(generalNum)
+
       local lord_general_num = 3
-      local all_lords = table.filter(room.general_pile, function (name)
-        return table.find(Fk.generals[name]:getSkillNameList(true), function(s)
-          return Fk.skills[s].lordSkill
-        end)
-      end)
-      if #all_lords > 0 then
-        for _, g in ipairs(table.random(all_lords, lord_general_num)) do
-          table.removeOne(room.general_pile, g)
-          table.insert(lord_generals, g)
-        end
+      local lord_generals = table.connect(room:findGenerals(function(g)
+        return table.find(Fk.generals[g].skills, function(s) return s.lordSkill end)
+      end, lord_general_num), room:getNGenerals(generalNum))
+      if #room.general_pile < (#room.players - 1) * generalNum then
+        room:gameOver("")
       end
 
       local lord_general = room:askForGeneral(lord, lord_generals, 1)
@@ -49,6 +43,9 @@ local role_mode = fk.CreateGameMode{
   
       local nonlord = room:getOtherPlayers(lord, true)
       local generals = room:getNGenerals(#nonlord * generalNum)
+      if #generals < #nonlord * generalNum then
+        room:gameOver("")
+      end
       table.shuffle(generals)
       for i, p in ipairs(nonlord) do
         local arg = table.slice(generals, (i - 1) * generalNum + 1, i * generalNum + 1)
