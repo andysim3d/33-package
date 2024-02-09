@@ -45,7 +45,7 @@ local n_rand_mode = fk.CreateGameMode{
   rule = n_rand_rule,
 }
 Fk:loadTranslationTable{
-  ["n_rand_mode"] = "随机模式",
+  ["n_rand_mode"] = "明身份随机场",
   [":n_rand_mode"] = desc_rand,
 }
 
