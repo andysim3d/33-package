@@ -9,6 +9,7 @@ Fk:loadTranslationTable{
   ["v33"] = "3v3",
   ["v22"] = "2v2",
   ["v11"] = "1v1",
+  ["vd"] = "忠胆",
 }
 
 local zombie = General(extension, "zombie", "god", 1)
@@ -664,5 +665,89 @@ Fk:loadTranslationTable{
   ["$v22__daizui2"] = "干，谢丞相不杀之恩！",
   ["~v22__jianggan"] = "唉！假信害我不浅啊！",
 }
+
+local huangfusong = General(extension, "vd__huangfusong", "qun", 4)
+local vd__fenyue = fk.CreateActiveSkill{
+  name = "vd__fenyue",
+  anim_type = "offensive",
+  card_num = 0,
+  target_num = 1,
+  can_use = function(self, player)
+    return not player:isKongcheng() and player:usedSkillTimes(self.name, Player.HistoryPhase) < player:getMark(self.name)
+  end,
+  card_filter = Util.FalseFunc,
+  target_filter = function(self, to_select, selected)
+    return #selected == 0 and to_select ~= Self.id and Self:canPindian(Fk:currentRoom():getPlayerById(to_select))
+  end,
+  on_use = function(self, room, effect)
+    local player = room:getPlayerById(effect.from)
+    local target = room:getPlayerById(effect.tos[1])
+    local pindian = player:pindian({target}, self.name)
+    if pindian.results[target.id].winner == player then
+      if player:prohibitUse(Fk:cloneCard("slash")) or player:isProhibited(target, Fk:cloneCard("slash")) or room:askForChoice(player, {"vd__fenyue_slash", "vd__fenyue_prohibit"}, self.name) == "vd__fenyue_prohibit" then
+        room:setPlayerMark(target, "@@vd__fenyue-turn", 1)
+      else
+        room:useVirtualCard("slash", nil, player, target, self.name, true)
+      end
+    else
+      player:endPlayPhase()
+    end
+  end,
+}
+local vd__fenyue_record = fk.CreateTriggerSkill{
+  name = "#vd__fenyue_record",
+  refresh_events = {fk.GameStart, fk.BeforeGameOverJudge, fk.EventAcquireSkill},
+  can_refresh = function(self, event, target, player, data)
+    if event == fk.EventAcquireSkill then
+      return target == player and data == self and player.room:getTag("RoundCount")
+    end
+    return player:hasSkill(vd__fenyue, true)
+  end,
+  on_refresh = function(self, event, target, player, data)
+    local room = player.room
+    room:setPlayerMark(player, "vd__fenyue", #table.filter(room.alive_players, function(p) return p.role == "loyalist" end))
+  end,
+}
+vd__fenyue:addRelatedSkill(vd__fenyue_record)
+local vd__fenyue_prohibit = fk.CreateProhibitSkill{
+  name = "#vd__fenyue_prohibit",
+  prohibit_use = function(self, player, card)
+    if player:getMark("@@vd__fenyue-turn") > 0 then
+      local subcards = card:isVirtual() and card.subcards or {card.id}
+      return #subcards > 0 and table.every(subcards, function(id)
+        return table.contains(player.player_cards[Player.Hand], id)
+      end)
+    end
+  end,
+  prohibit_response = function(self, player, card)
+    if player:getMark("@@vd__fenyue-turn") > 0 then
+      local subcards = card:isVirtual() and card.subcards or {card.id}
+      return #subcards > 0 and table.every(subcards, function(id)
+        return table.contains(player.player_cards[Player.Hand], id)
+      end)
+    end
+  end,
+}
+vd__fenyue:addRelatedSkill(vd__fenyue_prohibit)
+huangfusong:addSkill(vd__fenyue)
+Fk:loadTranslationTable{
+  ["vd__huangfusong"] = "皇甫嵩",
+  ["#vd__huangfusong"] = "志定雪霜",
+  ["illustrator:vd__huangfusong"] = "秋呆呆",
+  ["vd__fenyue"] = "奋钺",
+  [":vd__fenyue"] = "出牌阶段限X次，你可以与一名角色拼点，若你赢，你选择一项：1.其不能使用或打出手牌直到回合结束；2.视为你对其使用了不计入次数的【杀】。若你没赢，你结束出牌阶段(X为存活的忠臣数)。",
+  ["vd__fenyue_slash"] = "视为对其使用【杀】",
+  ["vd__fenyue_prohibit"] = "本回合禁止其使用/打出手牌",
+  ["@@vd__fenyue-turn"] = "被奋钺",
+}
+
+
+
+
+
+
+
+
+
 
 return extension

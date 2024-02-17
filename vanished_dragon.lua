@@ -124,11 +124,16 @@ local vanished_dragon_getLogic = function()
     local room = self.room
 
     local generals_blacklist = {
-      "cuiyan", "ty__huangfusong", -- 明忠备选
+      "cuiyan", "vd__huangfusong", -- 明忠备选
       "js__caocao", "js__zhugeliang", "ol__dongzhao","std__yuanshu", "huanghao", -- 暴露暗主
     }
+    local loyalist_list = {}
     for i = #room.general_pile, 1, -1 do
-      if table.contains(generals_blacklist, room.general_pile[i]) then
+      local name = room.general_pile[i]
+      if table.contains(generals_blacklist, name) then
+        if name == "cuiyan" or name == "vd__huangfusong" then
+          table.insert(loyalist_list, name)
+        end
         table.remove(room.general_pile, i)
       end
     end
@@ -148,9 +153,8 @@ local vanished_dragon_getLogic = function()
     room:doBroadcastNotify("ShowToast", "<b>" .. lord._splayer:getScreenName() .. "</b>" .. Fk:translate("vd_intro"))
 
     if lord ~= nil then
-      local lord_pool = {"cuiyan", "ty__huangfusong"}
-      table.insertTable(lord_pool, table.random(room.general_pile, generalNum))
-      local lord_generals = room:askForGeneral(lord, lord_pool, n)
+      table.insertTable(loyalist_list, table.random(room.general_pile, generalNum))
+      local lord_generals = room:askForGeneral(lord, loyalist_list, n)
       local lord_general, deputy
       if type(lord_generals) == "table" then
         deputy = lord_generals[2]
@@ -169,6 +173,38 @@ local vanished_dragon_getLogic = function()
       room:broadcastProperty(lord, "kingdom")
       room:setDeputyGeneral(lord, deputy)
       room:broadcastProperty(lord, "deputyGeneral")
+
+      -- 显示技能
+      local canAttachSkill = function(player, skillName)
+        local skill = Fk.skills[skillName]
+        if not skill then
+          fk.qCritical("Skill: "..skillName.." doesn't exist!")
+          return false
+        end
+        if #skill.attachedKingdom > 0 and not table.contains(skill.attachedKingdom, player.kingdom) then
+          return false
+        end
+        return true
+      end
+
+      local lord_skills = {}
+      for _, s in ipairs(Fk.generals[lord.general]:getSkillNameList()) do
+        if canAttachSkill(lord, s) then
+          table.insertIfNeed(lord_skills, s)
+        end
+      end
+      local deputyGeneral = Fk.generals[lord.deputyGeneral]
+      if deputyGeneral then
+        for _, s in ipairs(deputyGeneral:getSkillNameList()) do
+          if canAttachSkill(lord, s) then
+            table.insertIfNeed(lord_skills, s)
+          end
+        end
+      end
+      for _, skill in ipairs(lord_skills) do
+        room:doBroadcastNotify("AddSkill", json.encode{ lord.id, skill })
+      end
+
     end
 
     local nonlord = room:getOtherPlayers(lord, true)
