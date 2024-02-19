@@ -15,9 +15,9 @@ local desc_vanished_dragon = [[
 
   ## 游戏流程
 
-  1. **明忠如一般身份局的主公一样，先选将并展示**，其他人（包括主公）再选将。明忠的额外选将为 崔琰 和 皇甫嵩；
+  1. **明忠如一般身份局的主公一样，先选将并展示**，其他人（包括主公）再选将。明忠的固定额外选将为 崔琰 和 皇甫嵩(若在房间禁表则不会出现)；
 
-  2. 明忠根据体力上限和性别获得相应的“**忠臣技**”，即：
+  2. 明忠根据体力上限(不计明忠血量上限加成)和性别获得相应的“**忠臣技**”，即：
 
   - 体力上限不大于3的男性武将获得〖**洞察**〗（游戏开始时，随机一名反贼的身份对你可见。准备阶段开始时，你可以弃置场上的一张牌）；
 
@@ -188,7 +188,8 @@ local vanished_dragon_getLogic = function()
       end
 
       local lord_skills = {}
-      for _, s in ipairs(Fk.generals[lord.general]:getSkillNameList()) do
+      local lord_gs = Fk.generals[lord_general]
+      for _, s in ipairs(lord_gs:getSkillNameList()) do
         if canAttachSkill(lord, s) then
           table.insertIfNeed(lord_skills, s)
         end
@@ -201,6 +202,8 @@ local vanished_dragon_getLogic = function()
           end
         end
       end
+      local lord_maxhp = deputyGeneral and (lord_gs.maxHp + deputyGeneral.maxHp) // 2 or lord_gs.maxHp
+      table.insert(lord_skills, (lord_maxhp <= 3 and lord_gs.gender == General.Male) and "vd_dongcha" or "vd_sheshen")
       for _, skill in ipairs(lord_skills) do
         room:doBroadcastNotify("AddSkill", json.encode{ lord.id, skill })
       end
