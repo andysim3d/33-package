@@ -164,7 +164,7 @@ local vanished_dragon_getLogic = function()
         lord_generals = {lord_general}
       end
       for _, g in ipairs(lord_generals) do
-        table.removeOne(room.general_pile, g)
+        room:findGeneral(g)
       end
 
       room:setPlayerGeneral(lord, lord_general, true)
@@ -236,8 +236,10 @@ local vanished_dragon_getLogic = function()
       end
       room:setPlayerGeneral(p, mainGeneral, true, true)
       room:setDeputyGeneral(p, deputyGeneral)
-      table.removeOne(room.general_pile, mainGeneral)
-      table.removeOne(room.general_pile, deputyGeneral)
+      room:findGeneral(mainGeneral)
+      if deputyGeneral and deputyGeneral ~= "" then
+        room:findGeneral(deputyGeneral)
+      end
       p.default_reply = ""
     end
 
