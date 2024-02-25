@@ -412,24 +412,11 @@ Fk:loadTranslationTable{
   ["#looting-give"] = "趁火打劫：点“确定”将此牌交给 %src ，或点“取消”其对你造成1点伤害",
 }
 
-local brokenHalberdSkill = fk.CreateAttackRangeSkill{
-  name = "#broken_halberd_skill",
-  attached_equip = "broken_halberd",
-  frequency = Skill.Compulsory,
-  correct_func = function(self, from, to)
-    if from:hasSkill(self) then
-      return -1
-    end
-    return 0
-  end,
-}
-Fk:addSkill(brokenHalberdSkill)
 local broken_halberd = fk.CreateWeapon{
   name = "broken_halberd",
   suit = Card.Club,
   number = 1,
   attack_range = 0,
-  equip_skill = brokenHalberdSkill,
 }
 addPreasentCard(broken_halberd)
 Fk:loadTranslationTable{
