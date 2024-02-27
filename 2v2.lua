@@ -156,7 +156,7 @@ local m_2v2_mode = fk.CreateGameMode{
     return surrenderJudge
   end,
   winner_getter = function(self, victim)
-    if victim.rest > 0 then
+    if not victim.surrendered and victim.rest > 0 then
       return ""
     end
     local room = victim.room

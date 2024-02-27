@@ -597,7 +597,7 @@ local qixi_mode = fk.CreateGameMode{
   logic = qixi_get_logic,
   rule = qixi_rule,
   winner_getter = function(self, victim)
-    if victim.rest > 0 then
+    if not victim.surrendered and victim.rest > 0 then
       return ""
     end
     local room = victim.room
