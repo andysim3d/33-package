@@ -67,17 +67,16 @@ local m_1v1_getLogic = function()
     local function chooseGeneral(p, n)
       local g = room:askForGeneral(p, all_generals, n)
       if type(g) == "string" then g = {g} end
-      local str = p == lord and "1v1 Lord choose" or "1v1 Rebel choose"
       local t = p == lord and lord_generals or nonlord_generals
       table.insertTable(t, g)
       removeSame(all_generals, g[1])
       if g[2] then removeSame(all_generals, g[2]) end
-      room:doBroadcastNotify("ShowToast", Fk:translate(str) .. Fk:translate(g[1]) .. ' ' .. Fk:translate(g[2] or ""))
       room:sendLog{
         type = "#1v1ChooseGeneralsLog",
         arg = p == lord and "firstPlayer" or "secondPlayer",
         arg2 = g[1],
         arg3 = g[2] or "",
+        toast = true,
       }
     end
 
@@ -174,7 +173,12 @@ local m_1v1_rule = fk.CreateTriggerSkill{
       if body.role == "lord" then num = num + 1 else num2 = num2 + 1 end
       room:setBanner("@firstFallen", tostring(num) .. " / 3")
       room:setBanner("@secondFallen", tostring(num2) .. " / 3")
-      room:doBroadcastNotify("ShowToast", Fk:translate("1v1 score") .. tostring(num) .. ":" .. tostring(num2) .. Fk:translate("_1v1 score"))
+      room:sendLog{
+        type = "#1v1Score",
+        arg = num,
+        arg2 = num2,
+        toast = true,
+      }
       if num < 3 and num2 < 3 then return end
       room:gameOver(body.next.role)
       return true
@@ -244,14 +248,11 @@ local m_1v1_mode = fk.CreateGameMode{
 -- extension:addGameMode(m_1v1_mode)
 Fk:loadTranslationTable{
   ["m_1v1_mode"] = "1v1",
-  ["1v1 Lord choose"] = "先手选择了：",
-  ["1v1 Rebel choose"] = "后手选择了：",
   ["#1v1ChooseGeneralsLog"] = "%arg 选择了 %arg2 %arg3",
   ["firstPlayer"] = "先手",
   ["secondPlayer"] = "后手",
   ["1v1 choose general"] = "请选择第一名出战的武将",
-  ["1v1 score"] = "已阵亡武将数 先手 ",
-  ["_1v1 score"] = " 后手",
+  ["#1v1Score"] = "已阵亡武将数 先手 %arg : %arg2 后手",
   ["@firstFallen"] = "先手阵亡数",
   ["@secondFallen"] = "后手阵亡数",
   ["@&firstGenerals"] = "先手备选区",

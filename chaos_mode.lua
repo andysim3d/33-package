@@ -208,10 +208,10 @@ local chaos_rule = fk.CreateTriggerSkill{
         end
       end
       room:notifyMoveFocus(room.alive_players, self.name)
-      room:doBroadcastNotify("ShowToast", Fk:translate("chaos_e: " .. tostring(index)))
       room:sendLog{
         type = "chaos_mode_event_log",
         arg = "chaos_e: " .. tostring(index),
+        toast = true,
       }
       room:delay(3500)
       if index == 1 then
