@@ -462,29 +462,44 @@ Fk:loadTranslationTable{
   [":black_chain"] = "装备牌·武器<br/><b>攻击范围</b>：3<br/><b>武器技能</b>：当你使用【杀】指定目标后，你可以横置目标角色武将牌。",
 }
 
-local fiveElementsFanSkill = fk.CreateViewAsSkill{
-  name = "five_elements_fan_skill",
+local fiveElementsFanSkill = fk.CreateTriggerSkill{
+  name = "#five_elements_fan_skill",
   attached_equip = "five_elements_fan",
-  interaction = function(self)
-    local choices = {}
+  events = { fk.AfterCardUseDeclared },
+  can_trigger = function(self, _, target, player, data)
+    return target == player and player:hasSkill(self) and data.card.name ~= "slash" and data.card.trueName == "slash"
+  end,
+  on_cost = function (self, event, target, player, data)
+    local all_choices = {}
     for _, id in ipairs(Fk:getAllCardIds()) do
       local card = Fk:getCardById(id)
       if card.trueName == "slash" and card.name ~= "slash" then
-        table.insertIfNeed(choices, card.name)
+        table.insertIfNeed(all_choices, card.name)
       end
     end
-    return UI.ComboBox{choices = choices}
+    local choices = table.simpleClone(all_choices)
+    table.removeOne(choices, data.card.name)
+    if #choices > 0 and player.room:askForSkillInvoke(player, self.name) then
+      local choice = player.room:askForChoice(player, choices, self.name, nil, false, all_choices)
+      self.cost_data = choice
+      return true
+    end
   end,
-  card_filter = function(self, to_select, selected)
-    return #selected == 0 and Fk:getCardById(to_select).trueName == "slash" and Fk:getCardById(to_select).name ~= "slash" and
-      Fk:getCardById(to_select).name ~= self.interaction.data
-  end,
-  view_as = function(self, cards)
-    if #cards ~= 1 then return end
-    local card = Fk:cloneCard(self.interaction.data)
-    card:addSubcard(cards[1])
-    card.skillName = "five_elements_fan"
-    return card
+  on_use = function (self, event, target, player, data)
+    local card = Fk:cloneCard(self.cost_data, data.card.suit, data.card.number)
+    for k, v in pairs(data.card) do
+      if card[k] == nil then
+        card[k] = v
+      end
+    end
+    if data.card:isVirtual() then
+      card.subcards = data.card.subcards
+    else
+      card.id = data.card.id
+    end
+    card.skillNames = data.card.skillNames
+    card.skillName = "fan"
+    data.card = card
   end,
 }
 Fk:addSkill(fiveElementsFanSkill)
@@ -498,9 +513,8 @@ local fiveElementsFan = fk.CreateWeapon{
 extension:addCard(fiveElementsFan)
 Fk:loadTranslationTable{
   ["five_elements_fan"] = "五行鹤翎扇",
-  ["five_elements_fan_skill"] = "五行扇",
-  [":five_elements_fan"] = "装备牌·武器<br/><b>攻击范围</b>：4<br/><b>武器技能</b>：你可以将属性【杀】当任意其他属性【杀】使用。",
-  [":five_elements_fan_skill"] = "你可以将属性【杀】当任意其他属性【杀】使用。",
+  ["#five_elements_fan_skill"] = "五行鹤翎扇",
+  [":five_elements_fan"] = "装备牌·武器<br/><b>攻击范围</b>：4<br/><b>武器技能</b>：当你声明使用属性【杀】后，你可以将此【杀】改为任意其他属性【杀】。",
 }
 
 extension:addCards{
