@@ -362,7 +362,7 @@ local vanished_dragon_rule = fk.CreateTriggerSkill{
         local lord = room:getLord()
         lord.role_shown = true
         room:broadcastProperty(lord, "role")
-        room:doBroadcastNotify("ShowToast", Fk:translate("vd_lord_exploded") .. Fk:translate(lord.general))
+        room:sendLog{type = "#VDLordExploded", from = lord.id, toast = true}
         local skills = Fk.generals[lord.general].skills
         local addLordSkills = function(player, skillName)
           local skill = Fk.skills[skillName]
@@ -481,7 +481,7 @@ Fk:loadTranslationTable{
   ["vd_intro"] = "是<b>明忠</b>，<b>开始选将</b><br>明忠是代替主公亮出身份牌的忠臣，明忠死后主公再翻出身份牌",
   ["vd_loyalist_skill"] = "明忠获得忠臣技：",
   ["vd_dongcha_rebel"] = "明忠发动了〖洞察〗，一名反贼的身份已被其知晓",
-  ["vd_lord_exploded"] = "明忠阵亡，主公暴露：",
+  ["#VDLordExploded"] = "明忠阵亡，主公暴露：%from",
 
   ["vd_dongcha"] = "洞察",
   [":vd_dongcha"] = "游戏开始时，随机一名反贼的身份对你可见。准备阶段开始时，你可以弃置场上的一张牌。",

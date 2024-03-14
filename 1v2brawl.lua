@@ -29,7 +29,7 @@ local desc_brawl = [[
 ]]
 
 local ban_skills = {
-  "fenyong", "danggu",-- 弱智技能
+  "fenyong", "danggu", -- 弱智技能
   "duorui", "quanfeng", "zhongliu", "yongdi", "chuanwu", "tuogu", "zeyue", "n_dianlun", "xiaode" -- 和武将牌上的技能有关的
 }
 
@@ -55,22 +55,15 @@ local brawl_getLogic = function()
     local skill_num = room.settings.generalNum -- 技能池数量由选将数决定，农民等于，地主1.5倍（向下取整）
     local total = math.floor(skill_num * 3.5)
     local skill_pool, general_pool = {}, {}
+    local all_generals = room.general_pile -- Fk:getAllGenerals() -- replace Engine:getGeneralsRandomly
     local i = 0
-    local function insertSkill(skill, skills)
-      local skill_name = skill.name
-      if not skill.lordSkill and #skill.attachedKingdom == 0 then --and not table.contains(ban_skills, skill_name) and not table.contains(skill_pool, skill_name) then
-        table.insert(skills, skill_name)
-      end
-    end
-    local all_generals = Fk:getAllGenerals() -- replace Engine:getGeneralsRandomly
     for _ = 1, 999 do
-      local general = table.random(all_generals)
-      local skills = {}
-      table.forEach(general.skills, function(s) insertSkill(s, skills) end)
-      local skill = table.random(skills)
-      if skill and not table.contains(ban_skills, skill) and not table.contains(skill_pool, skill) then
+      local general = Fk.generals[table.random(all_generals)] ---@type General
+      local skills = general:getSkillNameList()
+      local skill = table.random(skills) ---@type string
+      local des = Fk:translate(":" .. skill, "zh_CN")
+      if not table.contains(ban_skills, skill) and not table.contains(skill_pool, skill) and not des:find("势力") and not des:find("[^属]性", nil, false) then
         i = i + 1
-        -- table.insert(skill_pool, {skill, general.name})
         table.insert(skill_pool, skill)
         table.insert(general_pool, general.name)
         if i == total then break end
