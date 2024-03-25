@@ -10,6 +10,7 @@ Fk:loadTranslationTable{
   ["v22"] = "2v2",
   ["v11"] = "1v1",
   ["vd"] = "忠胆",
+  ["var"] = "应变",
 }
 
 local zombie = General(extension, "zombie", "god", 1)
@@ -742,6 +743,127 @@ Fk:loadTranslationTable{
 }
 
 
+
+local var__yangyan = General(extension, "var__yangyan", "jin", 3, 3, General.Female)
+local nos__xuanbei = fk.CreateTriggerSkill{
+  name = "nos__xuanbei",
+  anim_type = "support",
+  events = {fk.GameStart, fk.CardUseFinished},
+  can_trigger = function(self, event, target, player, data)
+    if player:hasSkill(self) then
+      if event == fk.GameStart then
+        return true
+      elseif event == fk.CardUseFinished then
+        return target == player and not data.card:isVirtual() and
+          table.find({"@fujia", "@kongchao", "@canqu", "@zhuzhan"}, function(mark) return data.card:getMark(mark) ~= 0 end) and
+          player.room:getCardArea(data.card.id) == Card.Processing and
+          player:usedSkillTimes(self.name, Player.HistoryTurn) == 0
+      end
+    end
+  end,
+  on_cost = function(self, event, target, player, data)
+    if event == fk.GameStart then
+      return true
+    elseif event == fk.CardUseFinished then
+      local to = player.room:askForChoosePlayers(player, table.map(player.room:getOtherPlayers(player), function(p)
+        return p.id end), 1, 1, "#nos__xuanbei-give:::"..data.card:toLogString(), self.name, true)
+      if #to > 0 then
+        self.cost_data = to[1]
+        return true
+      end
+    end
+  end,
+  on_use = function(self, event, target, player, data)
+    local room = player.room
+    if event == fk.GameStart then
+      local cards = {}
+      for _, id in ipairs(room.draw_pile) do
+        if table.find({"@fujia", "@kongchao", "@canqu", "@zhuzhan"}, function(mark) return Fk:getCardById(id):getMark(mark) ~= 0 end) then
+          table.insert(cards, id)
+        end
+      end
+      local dummy = Fk:cloneCard("dilu")
+      if #cards > 0 then
+        dummy:addSubcards(table.random(cards, 2))
+      else  --没有就印两张！
+        local card1 = room:printCard("drowning", Card.Spade, 3)
+        room:setCardMark(card1, "@zhuzhan", Fk:translate("variation_addtarget"))
+        dummy:addSubcard(card1.id)
+        local card2 = room:printCard("savage_assault", Card.Spade, 13)
+        room:setCardMark(card2, "@fujia", Fk:translate("variation_minustarget"))
+        dummy:addSubcard(card2.id)
+      end
+      room:moveCardTo(dummy, Card.PlayerHand, player, fk.ReasonJustMove, self.name, nil, false, player.id)
+    elseif event == fk.CardUseFinished then
+      room:moveCardTo(data.card, Card.PlayerHand, room:getPlayerById(self.cost_data), fk.ReasonGive, self.name, nil, true, player.id)
+    end
+  end,
+}
+var__yangyan:addSkill(nos__xuanbei)
+var__yangyan:addSkill("xianwan")
+Fk:loadTranslationTable{
+  ["var__yangyan"] = "杨艳",
+  ["#var__yangyan"] = "武元皇后",
+  ["illustrator:var__yangyan"] = "张艺骞",
+  ["nos__xuanbei"] = "选备",
+  [":nos__xuanbei"] = "游戏开始时，你获得两张带有应变效果的牌。每回合限一次，当你使用带有应变效果的牌结算后，你可以将之交给一名其他角色。",
+  ["#nos__xuanbei-give"] = "选备：你可以将 %arg 交给一名其他角色",
+
+  ["$nos__xuanbei1"] = "男胤有德色，愿陛下以备六宫。",
+  ["$nos__xuanbei2"] = "广集良家，召充选者使吾拣择。",
+  ["$xianwan_var__yangyan1"] = "姿容娴婉，服饰华光。",
+  ["$xianwan_var__yangyan2"] = "有美一人，清扬婉兮。",
+  ["~var__yangyan"] = "后承前训，奉述遗芳……",
+}
+
+local var__yangzhi = General(extension, "var__yangzhi", "jin", 3, 3, General.Female)
+local nos__wanyi = fk.CreateViewAsSkill{
+  name = "nos__wanyi",
+  prompt = "#nos__wanyi",
+  interaction = function()
+    local all_names = {"chasing_near", "unexpectation", "drowning", "foresight"}
+    local names = table.simpleClone(all_names)
+    for _, name in ipairs(all_names) do
+      if table.contains(U.getMark(Self, "nos__wanyi-turn"), name) then
+        table.removeOne(names, name)
+      end
+    end
+    if #names == 0 then return end
+    return UI.ComboBox {choices = names, all_choices = all_names,}
+  end,
+  card_filter = function (self, to_select, selected)
+    return #selected == 0 and table.find({"@fujia", "@kongchao", "@canqu", "@zhuzhan"}, function(mark)
+      return Fk:getCardById(to_select):getMark(mark) ~= 0 end)
+  end,
+  before_use = function (self, player, use)
+    local mark = U.getMark(player, "nos__wanyi-turn")
+    table.insert(mark, use.card.name)
+    player.room:setPlayerMark(player, "nos__wanyi-turn", mark)
+  end,
+  view_as = function(self, cards)
+    if #cards ~= 1 or not self.interaction.data then return end
+    local card = Fk:cloneCard(self.interaction.data)
+    card:addSubcard(cards[1])
+    card.skillName = self.name
+    return card
+  end,
+}
+var__yangzhi:addSkill(nos__wanyi)
+var__yangzhi:addSkill("maihuo")
+Fk:loadTranslationTable{
+  ["var__yangzhi"] = "杨芷",
+  ["#var__yangzhi"] = "武悼皇后",
+  ["illustrator:var__yangzhi"] = "张艺骞",
+  ["nos__wanyi"] = "婉嫕",
+  [":nos__wanyi"] = "出牌阶段每种牌名限一次，你可以将一张带有应变效果的牌当【逐近弃远】、【出其不意】、【水淹七军】或【洞烛先机】使用。",
+  ["#nos__wanyi"] = "婉嫕：你可以将一张带有应变效果的牌当一种应变篇锦囊使用",
+
+  ["$nos__wanyi1"] = "婉嫕而淑慎，位居正室。",
+  ["$nos__wanyi2"] = "为后需备贞静之德、婉嫕之操。",
+  ["$maihuo_var__yangzhi1"] = "至亲约束不严，祸根深埋。",
+  ["$maihuo_var__yangzhi2"] = "闻祸端而不备，可亡矣。",
+  ["~var__yangzhi"] = "姊妹继宠，福极灾生……",
+}
 
 
 

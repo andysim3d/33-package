@@ -73,7 +73,7 @@ extension:addCards{
 Fk:loadTranslationTable{
   ["stab__slash"] = "刺杀",
   ["stab__slash_trigger"] = "刺杀",
-	[":stab__slash"] = "基本牌<br/><b>时机</b>：出牌阶段<br/><b>目标</b>：攻击范围内的一名角色<br/><b>效果</b>：对目标角色造成1点伤害。"..
+  [":stab__slash"] = "基本牌<br/><b>时机</b>：出牌阶段<br/><b>目标</b>：攻击范围内的一名角色<br/><b>效果</b>：对目标角色造成1点伤害。"..
   "当目标角色使用【闪】抵消刺【杀】时，若其有手牌，其需弃置一张手牌，否则此刺【杀】依然造成伤害。",
   ["#stab__slash-discard"] = "请弃置一张手牌，否则%arg依然对你生效",
 }
