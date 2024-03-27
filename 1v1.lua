@@ -192,10 +192,11 @@ local m_1v1_rule = fk.CreateTriggerSkill{
       body:bury()
       if body.rest > 0 then return end
       local current = room.logic:getCurrentEvent()
-      local last_event
-      if room.current == body then
+      local last_event = nil
+      if room.current.dead then
         last_event = current:findParent(GameEvent.Turn, true)
-      else
+      end
+      if last_event == nil then
         last_event = current
         if last_event.parent then
           repeat
