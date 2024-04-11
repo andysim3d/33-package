@@ -782,15 +782,15 @@ local variation_rule = fk.CreateTriggerSkill{
     if event == fk.AfterCardUseDeclared then
       if data.card:getMark("@zhuzhan") ~= 0 then
         local room = player.room
-        for _, p in ipairs(room:getOtherPlayers(player)) do
-          if not p:isKongcheng() and not table.contains(TargetGroup:getRealTargets(data.tos), p.id) then
-            local card = room:askForDiscard(p, 1, 1, true, "@zhuzhan", true, ".|.|.|.|.|"..data.card:getTypeString(),
-              "#zhuzhan-invoke:"..player.id.."::"..data.card:getTypeString()..":"..data.card:toLogString(), true)
-            if #card > 0 then
-              self.cost_data = {p, card}
-              return true
-            end
-          end
+        local players = table.filter(room:getOtherPlayers(player), function (p)
+          return not p:isKongcheng() and not table.contains(TargetGroup:getRealTargets(data.tos), p.id)
+        end)
+        if #players == 0 then return end
+        local winner, cards = U.askForRaceDiscard(room, players, 1, 1, false, "@zhuzhan", ".|.|.|.|.|"..data.card:getTypeString(),
+        "#zhuzhan-invoke:"..player.id.."::"..data.card:getTypeString()..":"..data.card:toLogString())
+        if winner then
+          self.cost_data = {winner, cards}
+          return true
         end
       else
         return true
@@ -820,22 +820,25 @@ local variation_rule = fk.CreateTriggerSkill{
     end
   end,
   on_use = function (self, event, target, player, data)
+    local room = player.room
     if event == fk.AfterCardUseDeclared then
       if data.card:getMark("@zhuzhan") ~= 0 then
-        player.room:throwCard(self.cost_data[2], "variation", self.cost_data[1], self.cost_data[1])
+        room:throwCard(self.cost_data[2], "variation", self.cost_data[1], self.cost_data[1])
       end
       data.extra_data = data.extra_data or {}
       data.extra_data.variation = true
     elseif event == fk.AfterCardTargetDeclared then
       if table.contains(TargetGroup:getRealTargets(data.tos), self.cost_data[1]) then
         TargetGroup:removeTarget(data.tos, self.cost_data[1])
+        room:sendLog{ type = "#RemoveTargetsBySkill", from = target.id, to = self.cost_data, arg = "@zhuzhan", arg2 = data.card:toLogString() }
       else
         table.insert(data.tos, self.cost_data)
+        room:sendLog{ type = "#AddTargetsBySkill", from = target.id, to = self.cost_data, arg = "@zhuzhan", arg2 = data.card:toLogString() }
       end
     elseif event == fk.CardUsing then
       if table.find(data.card:getMarkNames(), function(name)
         return data.card:getMark(name) == Fk:translate("variation_disresponsive") end) then
-        data.disresponsiveList = table.map(player.room.alive_players, Util.IdMapper)
+        data.disresponsiveList = table.map(room.alive_players, Util.IdMapper)
       end
       if table.find(data.card:getMarkNames(), function(name)
         return data.card:getMark(name) == Fk:translate("variation_draw") end) then
@@ -847,8 +850,7 @@ local variation_rule = fk.CreateTriggerSkill{
       end
       if table.find(data.card:getMarkNames(), function(name)
         return data.card:getMark(name) == Fk:translate("variation_cancel") end) then
-        local room = player.room
-        if data.responseToEvent and data.toCard and room:getCardArea(data.card) == Card.Processing then
+        if data.responseToEvent and data.toCard and U.hasFullRealCard(room, data.toCard) then
           room:obtainCard(player, data.toCard, true, fk.ReasonJustMove)
         end
       end
