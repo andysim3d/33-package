@@ -109,6 +109,8 @@ local qixi_desc = [==[
 
 ]==]
 
+local U = require "packages/utility/utility"
+
 local couples = {
   -- wei
   caopi = { "zhenji", "guozhao", "duanqiaoxiao", "xuelingyun" },
@@ -226,16 +228,25 @@ local gongdou = fk.CreateTriggerSkill{
   can_trigger = function(self, event, target, player, data)
     return player:hasSkill(self) and isCouple(target, player) and
       player:usedSkillTimes(self.name, Player.HistoryTurn) == 0 and
-      data.card.trueName == 'slash' and not data.card:isVirtual()
+      data.card.trueName == 'slash' and U.isPureCard(data.card)
+      and table.find(TargetGroup:getRealTargets(data.tos), function (pid)
+        local p = player.room:getPlayerById(pid)
+        return not p.dead and player:canUseTo(Fk:cloneCard("slash"), p, {bypass_distances=true,bypass_times=true})
+      end)
   end,
   on_use = function(self, event, target, player, data)
     local room = player.room
     local card = Fk:cloneCard('slash')
     card.skillName = self.name
+    local targets = table.filter(TargetGroup:getRealTargets(data.tos), function (pid)
+      local p = room:getPlayerById(pid)
+      return not p.dead and player:canUseTo(card, p, {bypass_distances=true,bypass_times=true})
+    end)
     room:useCard{
       from = player.id,
       card = card,
-      tos = data.tos,
+      tos = table.map(targets, function(p) return {p} end),
+      extraUse = true,
     }
   end,
 }
@@ -359,9 +370,9 @@ local qixi_get_logic = function()
   end
 
   function qixi_logic:chooseGenerals()
-    local room = self.room
+    local room = self.room --- @type Room
 
-    local all_generals = Fk:getAllGenerals({ Fk.generals["mouxusheng"], Fk.generals["blank_shibing"], Fk.generals["blank_nvshibing"] })
+    local all_generals = Fk:getAllGenerals()
 
     local generalNum = math.min(room.settings.generalNum, 8)
     local minGeneralNum = (#room.players * generalNum) // 2
@@ -423,18 +434,27 @@ local qixi_get_logic = function()
     room:notifyMoveFocus(nonlord, "AskForGeneral")
     room:doBroadcastRequest("AskForGeneral", nonlord)
 
+    local selected = {}
     for _, p in ipairs(nonlord) do
+      local general, deputy
       if p.general == "" and p.reply_ready then
         local generals = json.decode(p.client_reply)
-        local general = generals[1]
-        local deputy = generals[2]
-        room:setPlayerGeneral(p, general, true, true)
-        room:setDeputyGeneral(p, deputy)
+        general = generals[1]
+        deputy = generals[2]
       else
-        room:setPlayerGeneral(p, p.default_reply[1], true, true)
-        room:setDeputyGeneral(p, p.default_reply[2])
+        general = p.default_reply[1]
+        deputy = p.default_reply[2]
+      end
+      room:setPlayerGeneral(p, general, true, true)
+      room:setDeputyGeneral(p, deputy)
+      table.insertIfNeed(selected, general)
+      if deputy and deputy ~= "" then
+        table.insertIfNeed(selected, deputy)
       end
       p.default_reply = ""
+    end
+    for _, g in ipairs(selected) do
+      room:findGeneral(g)
     end
 
     room:askForChooseKingdom(nonlord)
