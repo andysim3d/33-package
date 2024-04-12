@@ -81,6 +81,12 @@ Fk:loadTranslationTable{
   [":zombie_ganran"] = "锁定技，你手牌中的装备牌视为【铁锁连环】。",
 }
 
+local hiddenone = General(extension, "hiddenone", "jin", 1)
+hiddenone.hidden = true
+Fk:loadTranslationTable{
+  ["hiddenone"] = "隐匿",
+}
+
 local v33__zhugejin = General(extension, "v33__zhugejin", "wu", 3)
 v33__zhugejin.hidden = true
 local v33__huanshi = fk.CreateTriggerSkill{

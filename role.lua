@@ -1,7 +1,94 @@
+
+-- 准备角色的武将/性别/势力（会判断隐匿）
+---@param player ServerPlayer
+---@param general string
+---@param reveal boolean|nil @ 是否为亮将（解除隐匿）
+local prepareHiddenGeneral = function (player, general, reveal)
+  local room = player.room
+  player.general = general
+  if not reveal and table.find(Fk.generals[general]:getSkillNameList(player.role == "lord"), function (s)
+    return Fk.skills[s].isHiddenSkill
+  end) then
+    room:setPlayerMark(player, "__hidden_general", general)
+    player.general = "hiddenone"
+  end
+  room:broadcastProperty(player, "general")
+  player.gender = Fk.generals[player.general].gender
+  room:broadcastProperty(player, "gender")
+  player.kingdom = Fk.generals[player.general].kingdom
+end
+
+-- 给角色添加武将技能
+---@param room Room
+---@param player ServerPlayer
+local addGeneralSkills = function(room, player)
+  local skills = Fk.generals[player.general]:getSkillNameList(true)
+  for _, s in ipairs(skills) do
+    local skill = Fk.skills[s]
+    if not (skill.lordSkill and player.role ~= "lord") and
+    (#skill.attachedKingdom == 0 or table.contains(skill.attachedKingdom, player.kingdom)) then
+      room:handleAddLoseSkills(player, s, nil, false)
+    end
+  end
+end
+
+local role_rule = fk.CreateTriggerSkill{
+  name = "#aab_role_rule",
+  priority = 0.001,
+  mute = true,
+  events = {fk.HpChanged, fk.TurnStart, fk.BeforeMaxHpChanged},
+  can_trigger = function(self, event, target, player, data)
+    if target == player and not player.dead 
+    and (player:getMark("__hidden_general") ~= 0 or player:getMark("__hidden_deputy") ~= 0) then
+      if event == fk.HpChanged then
+        return data.num < 0
+      else
+        return true
+      end
+    end
+  end,
+  on_cost = Util.TrueFunc,
+  on_use = function(self, event, target, player, data)
+    local room = player.room
+    if event == fk.BeforeMaxHpChanged then
+      return true
+    else
+      local general = player:getMark("__hidden_general")
+      room:setPlayerMark(player, "__hidden_general", 0)
+      prepareHiddenGeneral(player, general, true)
+      room:askForChooseKingdom({player})
+      room:broadcastProperty(player, "kingdom")
+
+      player.maxHp = player:getGeneralMaxHp()
+      player.hp = Fk.generals[general].hp
+      player.shield = math.min(Fk.generals[general].shield, 5)
+      if player.role == "lord" then
+        player.maxHp = player.maxHp + 1
+        player.hp = player.hp + 1
+      end
+      room:broadcastProperty(player, "maxHp")
+      room:broadcastProperty(player, "hp")
+      room:broadcastProperty(player, "shield")
+      addGeneralSkills (room, player)
+
+      room:sendLog{
+        type = "#RevealGeneral",
+        from = player.id,
+        arg =  "mainGeneral",
+        arg2 = general,
+      }
+      local event_data = {["m"] = general}
+      room.logic:trigger("fk.GeneralAppeared", player, event_data)
+    end
+  end,
+}
+Fk:addSkill(role_rule)
+
 local role_mode = fk.CreateGameMode{
   name = "aab_role_mode", -- just to let it at the top of list
   minPlayer = 8,
   maxPlayer = 8,
+  rule = role_rule,
   logic = function()
     local l = GameLogic:subclass("aab_role_mode_logic")
     function l:run()
@@ -10,7 +97,7 @@ local role_mode = fk.CreateGameMode{
     end
 
     function l:chooseGenerals()
-      local room = self.room
+      local room = self.room---@type Room
       local generalNum = room.settings.generalNum
       local lord = room:getLord()
       if not lord then
@@ -28,18 +115,19 @@ local role_mode = fk.CreateGameMode{
         room:gameOver("")
       end
 
-      local lord_general = room:askForGeneral(lord, lord_generals, 1)
+      local lord_general = room:askForGeneral(lord, lord_generals, 1)---@type string
       table.removeOne(lord_generals, lord_general)
       room:returnToGeneralPile(lord_generals)
+      room:findGeneral(lord_general)
 
-      room:setPlayerGeneral(lord, lord_general, true)
+      prepareHiddenGeneral(lord, lord_general)
       room:askForChooseKingdom({lord})
-      room:broadcastProperty(lord, "general")
       room:broadcastProperty(lord, "kingdom")
 
       local lord_skills = Fk.generals[lord.general]:getSkillNameList(true)
-      room:handleAddLoseSkills(lord, table.concat(lord_skills, "|"), nil, false, true)
-  
+      for _, sname in ipairs(lord_skills) do
+        room:doBroadcastNotify("AddSkill", json.encode{ lord.id, sname })
+      end
   
       local nonlord = room:getOtherPlayers(lord, true)
       local generals = room:getNGenerals(#nonlord * generalNum)
@@ -65,16 +153,37 @@ local role_mode = fk.CreateGameMode{
         else
           general = p.default_reply[1]
         end
-        table.insertIfNeed(selected, general)
-        room:setPlayerGeneral(p, general, true, true)
         p.default_reply = ""
+        table.insertIfNeed(selected, general)
+        prepareHiddenGeneral(p, general)
+        room:findGeneral(general)
       end
       generals = table.filter(generals, function(g) return not table.contains(selected, g) end)
       room:returnToGeneralPile(generals)
-  
       room:askForChooseKingdom(nonlord)
+      
+    end
 
-      room:handleAddLoseSkills(lord, "-"..table.concat(lord_skills, "|-"), nil, false ,true)
+    function l:broadcastGeneral()
+      local room = self.room
+      local players = room.players
+      for _, p in ipairs(players) do
+        assert(p.general ~= "")
+        local general = Fk.generals[p.general]
+        p.maxHp = p:getGeneralMaxHp()
+        p.hp = general.hp
+        p.shield = math.min(general.shield, 5)
+        -- TODO: setup AI here
+        if p.role ~= "lord" then
+          room:broadcastProperty(p, "kingdom")
+        elseif p.general ~= "hiddenone" then
+          p.maxHp = p.maxHp + 1
+          p.hp = p.hp + 1
+        end
+        room:broadcastProperty(p, "maxHp")
+        room:broadcastProperty(p, "hp")
+        room:broadcastProperty(p, "shield")
+      end
     end
 
     return l
@@ -85,6 +194,7 @@ local role_mode = fk.CreateGameMode{
 Fk:loadTranslationTable{
   ["aab_role_mode"] = "单将军八",
   [":aab_role_mode"] = "就是禁用了副将且人数必须为8的身份模式。这个模式创立的目的是便于统计数据。",
+  ["#aab_role_rule"] = "单将军八规则",
 }
 
 return role_mode
