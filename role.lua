@@ -1,21 +1,28 @@
 
--- 准备角色的武将/性别/势力（会判断隐匿）
----@param player ServerPlayer
----@param general string
----@param reveal boolean|nil @ 是否为亮将（解除隐匿）
-local prepareHiddenGeneral = function (player, general, reveal)
-  local room = player.room
-  player.general = general
-  if not reveal and table.find(Fk.generals[general]:getSkillNameList(player.role == "lord"), function (s)
-    return Fk.skills[s].isHiddenSkill
-  end) then
-    room:setPlayerMark(player, "__hidden_general", general)
-    player.general = "hiddenone"
+-- 准备多个角色的武将/性别/势力（会判断隐匿）
+---@param players table<ServerPlayer> @ 需要准备的角色表
+---@param generals table<string> @ 角色对应的武将表
+---@param reveal boolean|nil @ 是否解除隐匿
+local prepareHiddenGeneral = function (players, generals, reveal)
+  local room = players[1].room
+  for i, player in ipairs(players) do
+    local general = generals[i]
+    player.general = general
+    if not reveal and table.find(Fk.generals[general]:getSkillNameList(player.role == "lord"), function (s)
+      return Fk.skills[s].isHiddenSkill
+    end) then
+      room:setPlayerMark(player, "__hidden_general", general)
+      player.general = "hiddenone"
+    end
+    player.gender = Fk.generals[player.general].gender
+    player.kingdom = Fk.generals[player.general].kingdom
   end
-  room:broadcastProperty(player, "general")
-  player.gender = Fk.generals[player.general].gender
-  room:broadcastProperty(player, "gender")
-  player.kingdom = Fk.generals[player.general].kingdom
+  room:askForChooseKingdom(players)
+  for _, player in ipairs(players) do
+    room:broadcastProperty(player, "gender")
+    room:broadcastProperty(player, "general")
+    room:broadcastProperty(player, "kingdom")
+  end
 end
 
 -- 给角色添加武将技能
@@ -55,7 +62,7 @@ local role_rule = fk.CreateTriggerSkill{
     else
       local general = player:getMark("__hidden_general")
       room:setPlayerMark(player, "__hidden_general", 0)
-      prepareHiddenGeneral(player, general, true)
+      prepareHiddenGeneral({player}, {general}, true)
       room:askForChooseKingdom({player})
       room:broadcastProperty(player, "kingdom")
 
@@ -120,9 +127,7 @@ local role_mode = fk.CreateGameMode{
       room:returnToGeneralPile(lord_generals)
       room:findGeneral(lord_general)
 
-      prepareHiddenGeneral(lord, lord_general)
-      room:askForChooseKingdom({lord})
-      room:broadcastProperty(lord, "kingdom")
+      prepareHiddenGeneral({lord}, {lord_general})
 
       local lord_skills = Fk.generals[lord.general]:getSkillNameList(true)
       for _, sname in ipairs(lord_skills) do
@@ -154,14 +159,13 @@ local role_mode = fk.CreateGameMode{
           general = p.default_reply[1]
         end
         p.default_reply = ""
-        table.insertIfNeed(selected, general)
-        prepareHiddenGeneral(p, general)
+        table.insert(selected, general)
         room:findGeneral(general)
       end
       generals = table.filter(generals, function(g) return not table.contains(selected, g) end)
       room:returnToGeneralPile(generals)
-      room:askForChooseKingdom(nonlord)
-      
+      prepareHiddenGeneral(nonlord, selected)
+
     end
 
     function l:broadcastGeneral()
@@ -174,9 +178,7 @@ local role_mode = fk.CreateGameMode{
         p.hp = general.hp
         p.shield = math.min(general.shield, 5)
         -- TODO: setup AI here
-        if p.role ~= "lord" then
-          room:broadcastProperty(p, "kingdom")
-        elseif p.general ~= "hiddenone" then
+        if p.role == "lord" and p.general ~= "hiddenone" then
           p.maxHp = p.maxHp + 1
           p.hp = p.hp + 1
         end
