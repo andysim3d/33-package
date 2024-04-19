@@ -82,9 +82,8 @@ local prepareHiddenGeneral = function (players, generals, deputys)
     if table.find(skills, function (s) return Fk.skills[s].isHiddenSkill end) then
       room:setPlayerMark(player, "__hidden_general", general)
       if Fk.generals[deputy] then
-        -- 村：双将存在任何一个隐匿，则双将均为隐匿
         room:setPlayerMark(player, "__hidden_deputy", deputy)
-        player.deputyGeneral = "hiddenone"
+        player.deputyGeneral = ""
       end
       player.general = "hiddenone"
     end

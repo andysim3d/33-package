@@ -104,6 +104,7 @@ local hidden_skill = fk.CreateTriggerSkill{
     if event == fk.BeforeMaxHpChanged then
       return true
     else
+      room:handleAddLoseSkills(player, "-"..self.name, nil, false, true)
       if Fk.generals[player:getMark("__hidden_general")] then
         player.general = player:getMark("__hidden_general")
       end
@@ -152,7 +153,6 @@ local hidden_skill = fk.CreateTriggerSkill{
         event_data["d"] = deputy.name
       end
       room.logic:trigger("fk.GeneralAppeared", player, event_data)
-
     end
   end,
 }
