@@ -25,77 +25,11 @@ local prepareHiddenGeneral = function (players, generals, reveal)
   end
 end
 
--- 给角色添加武将技能
----@param room Room
----@param player ServerPlayer
-local addGeneralSkills = function(room, player)
-  local skills = Fk.generals[player.general]:getSkillNameList(true)
-  for _, s in ipairs(skills) do
-    local skill = Fk.skills[s]
-    if not (skill.lordSkill and player.role ~= "lord") and
-    (#skill.attachedKingdom == 0 or table.contains(skill.attachedKingdom, player.kingdom)) then
-      room:handleAddLoseSkills(player, s, nil, false)
-    end
-  end
-end
-
-local role_rule = fk.CreateTriggerSkill{
-  name = "#aab_role_rule",
-  priority = 0.001,
-  mute = true,
-  events = {fk.HpChanged, fk.TurnStart, fk.BeforeMaxHpChanged},
-  can_trigger = function(self, event, target, player, data)
-    if target == player and not player.dead 
-    and (player:getMark("__hidden_general") ~= 0 or player:getMark("__hidden_deputy") ~= 0) then
-      if event == fk.HpChanged then
-        return data.num < 0
-      else
-        return true
-      end
-    end
-  end,
-  on_cost = Util.TrueFunc,
-  on_use = function(self, event, target, player, data)
-    local room = player.room
-    if event == fk.BeforeMaxHpChanged then
-      return true
-    else
-      local general = player:getMark("__hidden_general")
-      room:setPlayerMark(player, "__hidden_general", 0)
-      prepareHiddenGeneral({player}, {general}, true)
-      room:askForChooseKingdom({player})
-      room:broadcastProperty(player, "kingdom")
-
-      player.maxHp = player:getGeneralMaxHp()
-      player.hp = Fk.generals[general].hp
-      player.shield = math.min(Fk.generals[general].shield, 5)
-      if player.role == "lord" then
-        player.maxHp = player.maxHp + 1
-        player.hp = player.hp + 1
-      end
-      room:broadcastProperty(player, "maxHp")
-      room:broadcastProperty(player, "hp")
-      room:broadcastProperty(player, "shield")
-      addGeneralSkills (room, player)
-
-      room:sendLog{
-        type = "#RevealGeneral",
-        from = player.id,
-        arg =  "mainGeneral",
-        arg2 = general,
-      }
-      local event_data = {["m"] = general}
-      room.logic:trigger("fk.GeneralAppeared", player, event_data)
-    end
-  end,
-}
-Fk:addSkill(role_rule)
 
 local role_mode = fk.CreateGameMode{
   name = "aab_role_mode", -- just to let it at the top of list
   minPlayer = 8,
   maxPlayer = 8,
-  rule = role_rule,
   logic = function()
     local l = GameLogic:subclass("aab_role_mode_logic")
     function l:run()

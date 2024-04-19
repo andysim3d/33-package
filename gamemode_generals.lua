@@ -83,8 +83,84 @@ Fk:loadTranslationTable{
 
 local hiddenone = General(extension, "hiddenone", "jin", 1)
 hiddenone.hidden = true
+local hidden_skill = fk.CreateTriggerSkill{
+  name = "hidden_skill&",
+  priority = 0.001,
+  mute = true,
+  events = {fk.HpChanged, fk.TurnStart, fk.BeforeMaxHpChanged},
+  can_trigger = function(self, event, target, player, data)
+    if target == player and not player.dead and
+    (player:getMark("__hidden_general") ~= 0 or player:getMark("__hidden_deputy") ~= 0) then
+      if event == fk.HpChanged then
+        return data.num < 0
+      else
+        return true
+      end
+    end
+  end,
+  on_cost = Util.TrueFunc,
+  on_use = function(self, event, target, player, data)
+    local room = player.room
+    if event == fk.BeforeMaxHpChanged then
+      return true
+    else
+      if Fk.generals[player:getMark("__hidden_general")] then
+        player.general = player:getMark("__hidden_general")
+      end
+      if Fk.generals[player:getMark("__hidden_deputy")] then
+        player.deputyGeneral = player:getMark("__hidden_deputy")
+      end
+      room:setPlayerMark(player, "__hidden_general", 0)
+      room:setPlayerMark(player, "__hidden_deputy", 0)
+      local general = Fk.generals[player.general]
+      local deputy = Fk.generals[player.deputyGeneral]
+      player.gender = general.gender
+      player.kingdom = general.kingdom
+      room:broadcastProperty(player, "gender")
+      room:broadcastProperty(player, "general")
+      room:broadcastProperty(player, "deputyGeneral")
+      room:askForChooseKingdom({player})
+      room:broadcastProperty(player, "kingdom")
+      
+      player.maxHp = player:getGeneralMaxHp()
+      player.hp = deputy and math.floor((deputy.hp + general.hp) / 2) or general.hp
+      player.shield = math.min(general.shield + (deputy and deputy.shield or 0), 5)
+      local changer = U.changePlayerPropertyByMode(player, room.settings.gameMode)
+      player.hp = changer.hp or player.hp
+      player.maxHp = changer.maxHp or player.maxHp
+      room:broadcastProperty(player, "maxHp")
+      room:broadcastProperty(player, "hp")
+      room:broadcastProperty(player, "shield")
+
+      local lordBuff = player.role == "lord" and player.role_shown == true and #room.players > 4
+      local skills = general:getSkillNameList(lordBuff)
+      if deputy then
+        table.insertTable(skills, deputy:getSkillNameList(lordBuff))
+      end
+      skills = table.filter(skills, function (s)
+        local skill = Fk.skills[s]
+        return skill and (#skill.attachedKingdom == 0 or table.contains(skill.attachedKingdom, player.kingdom))
+      end)
+      if #skills > 0 then
+        room:handleAddLoseSkills(player, table.concat(skills, "|"), nil, false)
+      end
+
+      room:sendLog{ type = "#RevealGeneral", from = player.id, arg =  "mainGeneral", arg2 = general.name }
+      local event_data = {["m"] = general}
+      if deputy then
+        room:sendLog{ type = "#RevealGeneral", from = player.id, arg =  "deputyGeneral", arg2 = deputy.name }
+        event_data["d"] = deputy.name
+      end
+      room.logic:trigger("fk.GeneralAppeared", player, event_data)
+
+    end
+  end,
+}
+hiddenone:addSkill(hidden_skill)
 Fk:loadTranslationTable{
-  ["hiddenone"] = "隐匿",
+  ["hiddenone"] = "隐匿将",
+  ["hidden_skill&"] = "隐匿",
+  [":hidden_skill&"] = "若你为隐匿将，防止你改变体力上限。当你扣减体力后，或你回合开始时，你解除隐匿状态。",
 }
 
 local v33__zhugejin = General(extension, "v33__zhugejin", "wu", 3)
