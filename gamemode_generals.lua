@@ -83,6 +83,7 @@ Fk:loadTranslationTable{
 
 local hiddenone = General(extension, "hiddenone", "jin", 1)
 hiddenone.hidden = true
+hiddenone.fixMaxHp = 1
 local hidden_skill = fk.CreateTriggerSkill{
   name = "hidden_skill&",
   priority = 0.001,
@@ -126,9 +127,12 @@ local hidden_skill = fk.CreateTriggerSkill{
       player.maxHp = player:getGeneralMaxHp()
       player.hp = deputy and math.floor((deputy.hp + general.hp) / 2) or general.hp
       player.shield = math.min(general.shield + (deputy and deputy.shield or 0), 5)
-      local changer = U.changePlayerPropertyByMode(player, room.settings.gameMode)
-      player.hp = changer.hp or player.hp
-      player.maxHp = changer.maxHp or player.maxHp
+      local changer = Fk.game_modes[room.settings.gameMode]:getAdjustedProperty(player)
+      if changer then
+        for key, value in pairs(changer) do
+          player[key] = value
+        end
+      end
       room:broadcastProperty(player, "maxHp")
       room:broadcastProperty(player, "hp")
       room:broadcastProperty(player, "shield")

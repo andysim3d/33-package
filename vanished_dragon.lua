@@ -414,14 +414,14 @@ local vanished_dragon = fk.CreateGameMode{
   surrender_func = function(self, playedTime)
     return Fk.game_modes["aaa_role_mode"].surrenderFunc(self, playedTime)
   end,
+  get_adjusted = function (player)
+    if player.room:getTag("ShownLoyalist") == player.id then
+      return {hp = player.hp + 1, maxHp = player.maxHp + 1}
+    end
+    return {}
+  end
 }
 
-vanished_dragon.getAdjustedProperty = function (player)
-  if player.room:getTag("ShownLoyalist") == player.id then
-    return {hp = player.hp + 1, maxHp = player.maxHp + 1}
-  end
-  return {}
-end
 
 -- 洞察：游戏开始时，随机一名反贼的身份对你可见。准备阶段开始时，你可以弃置场上的一张牌。
 local vd_dongcha = fk.CreateTriggerSkill{
