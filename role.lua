@@ -65,7 +65,10 @@ local role_mode = fk.CreateGameMode{
 
       local lord_skills = Fk.generals[lord.general]:getSkillNameList(true)
       for _, sname in ipairs(lord_skills) do
-        room:doBroadcastNotify("AddSkill", json.encode{ lord.id, sname })
+        local skill = Fk.skills[sname]
+        if #skill.attachedKingdom == 0 or table.contains(skill.attachedKingdom, lord.kingdom) then
+          room:doBroadcastNotify("AddSkill", json.encode{ lord.id, sname })
+        end
       end
   
       local nonlord = room:getOtherPlayers(lord, true)
