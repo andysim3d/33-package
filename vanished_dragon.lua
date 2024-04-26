@@ -464,7 +464,7 @@ local vd_dongcha = fk.CreateTriggerSkill{
     else
       local to = room:getPlayerById(self.cost_data)
       local card = room:askForCardChosen(player, to, "ej", self.name)
-      room:throwCard({card}, self.name, target, player)
+      room:throwCard({card}, self.name, to, player)
     end
   end,
 }
