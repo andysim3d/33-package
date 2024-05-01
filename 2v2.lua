@@ -118,8 +118,9 @@ local m_2v2_rule = fk.CreateTriggerSkill{
   on_refresh = function(self, event, target, player, data)
     local room = player.room
     if event == fk.DrawNCards then
-      if player.seat == 1 and player:getMark(self.name) == 0 then
-        room:addPlayerMark(player, self.name, 1)
+      local turnevents = room.logic.event_recorder[GameEvent.Turn] or Util.DummyTable
+      if #turnevents == 1 and player:getMark(self.name) == 0 then
+        room:setPlayerMark(player, self.name, 1)
         data.n = data.n - 1
       end
     elseif event == fk.DrawInitialCards then
