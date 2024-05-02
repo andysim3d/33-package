@@ -91,6 +91,11 @@ local m_1v3_getLogic = function()
           end)
           generals = table.map(generals, Util.NameMapper)
           deputy = room:askForGeneral(p, generals, 1)
+        else
+          -- TODO: 需要深入，目前头疼医头
+          p.request_timeout = room.timeout
+          local start = os.getms()
+          p.request_start = start
         end
       else
         local generals = Fk:getGeneralsRandomly(generalNum, nil, nil, function(g)
