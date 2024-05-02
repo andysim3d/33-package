@@ -16,8 +16,9 @@ local desc_1v3 = [[
   第一阶段中固定为中坚-吕布-先锋-吕布-大将-吕布，无视座位变化。
 
   当神吕布的体力值即将降低到4或者更低时，神吕布立刻进入第二阶段：（6血6上限，
-  随机变更为暴怒战神或者神鬼无前，复原并弃置判定区内所有牌，结束一切结算并\
+  随机变更为暴怒战神或者神鬼无前，复原并弃置判定区内所有牌，结束一切结算并
   终止本轮游戏，进入新一轮并由神吕布第一个行动）
+
   第二阶段后，按照座次正常进行行动。
 
   ## 其他
@@ -157,6 +158,7 @@ local m_1v3_getLogic = function()
     -- 行动顺序：反1->主->反2->主->反3->主，若已暴怒则正常逻辑
     if not room:getTag("m_1v3_phase2") then
       local p1 = room:getLord()
+      room.current = p1 -- getOtherPlayers
       for _, p in ipairs(room:getOtherPlayers(p1, true, true)) do
         room.current = p
         GameEvent.Turn:create(p):exec()
@@ -192,7 +194,7 @@ local m_1v3_rule = fk.CreateTriggerSkill{
   priority = 0.001,
   refresh_events = {
     fk.DrawInitialCards,
-    fk.BeforeGameOverJudge, fk.Deathed, fk.AfterPlayerRevived, fk.BeforeTurnStart,
+    fk.BeforeGameOverJudge, fk.Deathed, fk.AfterPlayerRevived,
     fk.BeforeHpChanged,
   },
   can_refresh = function(self, event, target, player, data)
@@ -202,8 +204,6 @@ local m_1v3_rule = fk.CreateTriggerSkill{
       return player.role ~= "lord" and data.damage and data.damage.from == room:getLord()
     elseif event == fk.AfterPlayerRevived then
       return player.tag["hulaoRest"] and player.hp < 6
-    elseif event == fk.BeforeTurnStart then
-      return player.tag["hulaoRest"]
     elseif event == fk.BeforeHpChanged then
       return player.role == "lord" and not room:getTag("m_1v3_phase2") and
         player.hp + data.num <= 4
@@ -217,9 +217,6 @@ local m_1v3_rule = fk.CreateTriggerSkill{
       else data.num = player.seat + 1 end
     elseif event == fk.AfterPlayerRevived then
       player:drawCards(6 - player.hp, self.name)
-    elseif event == fk.BeforeTurnStart then
-      player.tag["hulaoRest"] = false
-      return true
     elseif event == fk.BeforeGameOverJudge then
       player._splayer:setDied(false)
       room:setPlayerRest(player, 6)
@@ -256,6 +253,15 @@ local m_1v3_rule = fk.CreateTriggerSkill{
       end
     end
   end,
+
+  events = {fk.BeforeTurnStart},
+  can_trigger = function(self, event, target, player, data)
+    return target == player and player.tag["hulaoRest"]
+  end,
+  on_trigger = function(self, event, target, player, data)
+    player.tag["hulaoRest"] = false
+    return true
+  end
 }
 Fk:addSkill(m_1v3_rule)
 local m_1v3_mode = fk.CreateGameMode{
