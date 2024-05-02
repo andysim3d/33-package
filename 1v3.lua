@@ -7,6 +7,11 @@ local desc_1v3 = [[
 
   胜利目标为击破全部敌方。
 
+  ## 选择武将
+
+  在新月杀中，神吕布也可以选择武将，他之后将会获得武将技能。选将的顺序按照
+  座位依次进行。
+
   ## 分发初始手牌
 
   神吕布8张、中坚3张、先锋4张、大将5张。
@@ -31,9 +36,6 @@ local desc_1v3 = [[
 
   武器重铸：该模式下武器牌可重铸。
 
-  ## 新月杀特色
-
-  支持双将玩法。神吕布游戏开始时也会选择武将，他获得自己选择的武将牌的所有技能。
 ]]
 
 local recastSkill = fk.CreateActiveSkill{
@@ -41,7 +43,9 @@ local recastSkill = fk.CreateActiveSkill{
   anim_type = "drawcard",
   card_num = 1,
   card_filter = function(self, to_select, selected)
-    return Fk:getCardById(to_select).sub_type == Card.SubtypeWeapon and not Self:prohibitDiscard(Fk:getCardById(to_select))
+    return Fk:getCardById(to_select).sub_type == Card.SubtypeWeapon and
+      Fk:currentRoom():getCardArea(to_select) == Card.PlayerHand and
+      not Self:prohibitDiscard(Fk:getCardById(to_select))
   end,
   target_filter = Util.FalseFunc,
   on_use = function(self, room, effect)
@@ -76,33 +80,18 @@ local m_1v3_getLogic = function()
 
     local lord = room:getLord()
     room.current = lord
-    local nonlord = room.players
-    -- 地主多发俩武将
-    local generals = room:getNGenerals(#nonlord * generalNum)
-    for i, p in ipairs(nonlord) do
-      local arg = table.slice(generals, (i - 1) * generalNum + 1, i * generalNum + 1)
-      p.request_data = json.encode({ arg, n })
-      p.default_reply = table.random(arg, n)
-    end
-    room:notifyMoveFocus(nonlord, "AskForGeneral")
-    room:doBroadcastRequest("AskForGeneral", nonlord)
-
-    for _, p in ipairs(nonlord) do
-      local general, deputy
-      if p.general == "" and p.reply_ready then
-        local general_ret = json.decode(p.client_reply)
-        general = general_ret[1]
-        deputy = general_ret[2]
-      else
-        general = p.default_reply[1]
-        deputy = p.default_reply[2]
-      end
-      -- room:prepareGeneral(p, general, deputy)
+    for _, p in ipairs(room.players) do
+      local generals = room:getNGenerals(generalNum)
+      local g = room:askForGeneral(p, generals, n)
+      if n == 1 then g = { g } end
+      local general, deputy = table.unpack(g)
       room:setPlayerGeneral(p, general, true, true)
       if deputy then
         p.deputyGeneral = deputy
       end
-      p.default_reply = ""
+      room:broadcastProperty(p, "general")
+      room:broadcastProperty(p, "deputyGeneral")
+      room:broadcastProperty(p, "kingdom")
     end
     room:askForChooseKingdom(room:getOtherPlayers(lord))
   end
@@ -201,7 +190,7 @@ local m_1v3_rule = fk.CreateTriggerSkill{
     if target ~= player then return false end
     local room = player.room
     if event == fk.BeforeGameOverJudge then
-      return player.role ~= "lord" and data.damage and data.damage.from == room:getLord()
+      return player.role ~= "lord"
     elseif event == fk.AfterPlayerRevived then
       return player.tag["hulaoRest"] and player.hp < 6
     elseif event == fk.BeforeHpChanged then
@@ -218,18 +207,20 @@ local m_1v3_rule = fk.CreateTriggerSkill{
     elseif event == fk.AfterPlayerRevived then
       player:drawCards(6 - player.hp, self.name)
     elseif event == fk.BeforeGameOverJudge then
-      player._splayer:setDied(false)
-      room:setPlayerRest(player, 6)
-      player.tag["hulaoRest"] = true
+      if data.damage and data.damage.from == room:getLord() then
+        player._splayer:setDied(false)
+        room:setPlayerRest(player, 6)
+        player.tag["hulaoRest"] = true
+      end
+      local onlyLvbu = #room:getOtherPlayers(room:getLord()) == 0
+      if onlyLvbu then
+        room:gameOver("lord")
+      end
     elseif event == fk.Deathed then
       for _, p in ipairs(room.alive_players) do
         if p.role == player.role and room:askForSkillInvoke(p, self.name, nil, "#m_1v3_death_draw") then
           p:drawCards(1)
         end
-      end
-      local onlyLvbu = #room:getOtherPlayers(room:getLord()) == 0
-      if onlyLvbu then
-        room:gameOver("lord")
       end
     elseif event == fk.BeforeHpChanged then
       local round = room.logic:getCurrentEvent():findParent(GameEvent.Round)
@@ -303,7 +294,7 @@ Fk:loadTranslationTable{
   -- ["time limitation: 2 min"] = "游戏时长达到2分钟",
   -- ["2v2: left you alive"] = "你所处队伍仅剩你存活",
   ["1v3_recast_weapon&"] = "武器重铸",
-  [":1v3_recast_weapon&"] = "你可以重铸武器牌。",
+  [":1v3_recast_weapon&"] = "你可以重铸手里的武器牌。",
 }
 
 return m_1v3_mode
