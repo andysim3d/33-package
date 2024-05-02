@@ -43,14 +43,14 @@ local m_2v2_getLogic = function()
   function m_2v2_logic:chooseGenerals()
     local room = self.room
     local generalNum = math.min(room.settings.generalNum, 9)
-    for _, p in ipairs(room.players) do
-      p.role_shown = true
-      room:broadcastProperty(p, "role")
-    end
 
     local lord = room:getLord()
     room.current = lord
     lord.role = self.start_role
+    for _, p in ipairs(room.players) do
+      p.role_shown = true
+      room:broadcastProperty(p, "role")
+    end
 
     local nonlord = room.players
     local generals = table.map(Fk:getGeneralsRandomly(#nonlord * generalNum), Util.NameMapper)
