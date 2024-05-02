@@ -9,8 +9,9 @@ local desc_1v3 = [[
 
   ## 选择武将
 
-  在新月杀中，神吕布也可以选择武将，他之后将会获得武将技能。选将的顺序按照
-  座位依次进行。
+  选将的顺序按照座位依次进行，即先锋-中坚-大将的顺序依次选将。
+  
+  若启用双将，则盟军选将之前吕布可以选择一名武将作为自己的副将。
 
   ## 分发初始手牌
 
@@ -81,10 +82,25 @@ local m_1v3_getLogic = function()
     local lord = room:getLord()
     room.current = lord
     for _, p in ipairs(room.players) do
-      local generals = room:getNGenerals(generalNum)
-      local g = room:askForGeneral(p, generals, n)
-      if n == 1 then g = { g } end
-      local general, deputy = table.unpack(g)
+      local general, deputy
+      if p.role == "lord" then
+        general = "hulao__godlvbu1"
+        if n == 2 then
+          local generals = Fk:getGeneralsRandomly(generalNum, nil, nil, function(g)
+            return g.name:startsWith("hulao__")
+          end)
+          generals = table.map(generals, Util.NameMapper)
+          deputy = room:askForGeneral(p, generals, 1)
+        end
+      else
+        local generals = Fk:getGeneralsRandomly(generalNum, nil, nil, function(g)
+          return g.name:startsWith("hulao__")
+        end)
+        generals = table.map(generals, Util.NameMapper)
+        local g = room:askForGeneral(p, generals, n)
+        if n == 1 then g = { g } end
+        general, deputy = table.unpack(g)
+      end
       room:setPlayerGeneral(p, general, true, true)
       if deputy then
         p.deputyGeneral = deputy
@@ -116,9 +132,8 @@ local m_1v3_getLogic = function()
       local deputy = Fk.generals[p.deputyGeneral]
 
       if p.role == "lord" then
-        room:changeHero(p, "", false, true, false)
-        room:changeHero(p, "hulao__godlvbu1", true, false, false, true, false)
-        room:changeKingdom(p, "god")
+        room:changeMaxHp(p, 8 - p.maxHp)
+        room:changeHp(p, 8 - p.hp)
       end
 
       local skills = general.skills
