@@ -26,8 +26,6 @@ local m_2v2_getLogic = function()
     for i = 1, n do
       local p = room.players[i]
       p.role = roles[i]
-      p.role_shown = true
-      room:broadcastProperty(p, "role")
     end
 
     ---[[
@@ -45,6 +43,10 @@ local m_2v2_getLogic = function()
   function m_2v2_logic:chooseGenerals()
     local room = self.room
     local generalNum = math.min(room.settings.generalNum, 9)
+    for _, p in ipairs(room.players) do
+      p.role_shown = true
+      room:broadcastProperty(p, "role")
+    end
 
     local lord = room:getLord()
     room.current = lord
