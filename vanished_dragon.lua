@@ -414,7 +414,7 @@ local vanished_dragon = fk.CreateGameMode{
   surrender_func = function(self, playedTime)
     return Fk.game_modes["aaa_role_mode"].surrenderFunc(self, playedTime)
   end,
-  get_adjusted = function (player)
+  get_adjusted = function (self, player)
     if player.room:getTag("ShownLoyalist") == player.id then
       return {hp = player.hp + 1, maxHp = player.maxHp + 1}
     end
