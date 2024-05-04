@@ -21,7 +21,7 @@ local desc_1v3 = [[
 
   第一阶段中固定为中坚-吕布-先锋-吕布-大将-吕布，无视座位变化。
 
-  当神吕布的体力值即将降低到4或者更低时，神吕布立刻进入第二阶段：（6血6上限，
+  当神吕布的体力值即将降低到4或者更低时或者牌堆首次洗切时，神吕布立刻进入第二阶段：（6血6上限，
   随机变更为暴怒战神或者神鬼无前，复原并弃置判定区内所有牌，结束一切结算并
   终止本轮游戏，进入新一轮并由神吕布第一个行动）
 
@@ -204,7 +204,7 @@ local m_1v3_rule = fk.CreateTriggerSkill{
   refresh_events = {
     fk.DrawInitialCards,
     fk.BeforeGameOverJudge, fk.Deathed, fk.AfterPlayerRevived,
-    fk.BeforeHpChanged,
+    fk.BeforeHpChanged, fk.AfterDrawPileShuffle,
   },
   can_refresh = function(self, event, target, player, data)
     if target ~= player then return false end
@@ -216,6 +216,8 @@ local m_1v3_rule = fk.CreateTriggerSkill{
     elseif event == fk.BeforeHpChanged then
       return player.role == "lord" and not room:getTag("m_1v3_phase2") and
         player.hp + data.num <= 4
+    elseif event == fk.AfterDrawPileShuffle then
+      return  not room:getTag("m_1v3_phase2")
     end
     return true
   end,
@@ -242,7 +244,7 @@ local m_1v3_rule = fk.CreateTriggerSkill{
           p:drawCards(1)
         end
       end
-    elseif event == fk.BeforeHpChanged then
+    elseif event == fk.BeforeHpChanged or event == fk.AfterDrawPileShuffle then
       local round = room.logic:getCurrentEvent():findParent(GameEvent.Round)
       room:notifySkillInvoked(player, "m_1v3_convert", "big")
       room:setTag("m_1v3_phase2", true)
