@@ -489,10 +489,9 @@ local vd_sheshen = fk.CreateTriggerSkill{
       recoverBy = player,
       skillName = self.name,
     })
-    local dummy = Fk:cloneCard("dilu")
-    dummy:addSubcards(player:getCardIds{Player.Hand, Player.Equip})
-    if #dummy.subcards > 0 then
-      room:obtainCard(target, dummy, false, fk.ReasonPrey, player.id)
+    local cards = player:getCardIds{Player.Hand, Player.Equip}
+    if #cards > 0 then
+      room:obtainCard(target, cards, false, fk.ReasonPrey, player.id)
     end
     if not player.dead then
       room:killPlayer({who = player.id})

@@ -155,9 +155,7 @@ local poison_trigger = fk.CreateTriggerSkill{
   on_use = function(self, event, target, player, data)
     local room = player.room
     local to = room:getPlayerById(self.cost_data.targets[1])
-    local dummy = Fk:cloneCard("dilu")
-    dummy:addSubcards(self.cost_data.cards)
-    room:moveCardTo(dummy, Card.PlayerHand, to, fk.ReasonGive, "es__poison_give", nil, true, player.id)
+    room:moveCardTo(self.cost_data.cards, Card.PlayerHand, to, fk.ReasonGive, "es__poison_give", nil, true, player.id)
   end,
 
   refresh_events = {fk.BeforeCardsMove},
@@ -327,15 +325,11 @@ local sincereTreatSkill = fk.CreateActiveSkill{
     local target = room:getPlayerById(effect.to)
     if player.dead or target.dead or target:isAllNude() then return end
     local cards = room:askForCardsChosen(player, target, 1, 2, "hej", self.name)
-    local dummy = Fk:cloneCard("dilu")
-    dummy:addSubcards(cards)
-    room:obtainCard(player, dummy, false, fk.ReasonPrey)
+    room:obtainCard(player, cards, false, fk.ReasonPrey)
     if not player.dead and not target.dead or player:isKongcheng() then
       local n = math.min(#cards, player:getHandcardNum())
-      local cards2 = room:askForCard(player, n, n, false, self.name, false, ".|.|.|hand", "#sincere_treat-give::"..target.id..":"..n)
-      local dummy2 = Fk:cloneCard("dilu")
-      dummy2:addSubcards(cards2)
-      room:obtainCard(target, dummy2, false, fk.ReasonGive)
+      cards = room:askForCard(player, n, n, false, self.name, false, ".|.|.|hand", "#sincere_treat-give::"..target.id..":"..n)
+      room:obtainCard(target, cards, false, fk.ReasonGive)
     end
   end
 }

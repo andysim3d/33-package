@@ -548,14 +548,11 @@ local v11__chengji_trigger = fk.CreateTriggerSkill{
     local room = player.room
     if event == fk.Death then
       room:setTag("v11__chengji"..player.id, table.simpleClone(player:getPile("v11__chengji")))
-      local dummy = Fk:cloneCard("dilu")
-      dummy:addSubcards(player:getPile("v11__chengji"))
-      room:moveCardTo(dummy, Card.Void, nil, fk.ReasonJustMove, "v11__chengji", nil, true, player.id)
+      room:moveCardTo(player:getPile("v11__chengji"), Card.Void, nil, fk.ReasonJustMove, "v11__chengji", nil, true, player.id)
     else
-      local dummy = Fk:cloneCard("dilu")
-      dummy:addSubcards(table.simpleClone(room:getTag("v11__chengji"..player.id)))
+      local cards = table.simpleClone(room:getTag("v11__chengji"..player.id))
       room:removeTag("v11__chengji"..player.id)
-      room:moveCardTo(dummy, Card.PlayerHand, player, fk.ReasonJustMove, "v11__chengji", nil, true, player.id)
+      room:moveCardTo(cards, Card.PlayerHand, player, fk.ReasonJustMove, "v11__chengji", nil, true, player.id)
     end
   end,
 }
@@ -773,18 +770,9 @@ local nos__xuanbei = fk.CreateTriggerSkill{
           table.insert(cards, id)
         end
       end
-      local dummy = Fk:cloneCard("dilu")
       if #cards > 0 then
-        dummy:addSubcards(table.random(cards, 2))
-      else  --没有就印两张！
-        local card1 = room:printCard("drowning", Card.Spade, 3)
-        room:setCardMark(card1, "@zhuzhan", Fk:translate("variation_addtarget"))
-        dummy:addSubcard(card1.id)
-        local card2 = room:printCard("savage_assault", Card.Spade, 13)
-        room:setCardMark(card2, "@fujia", Fk:translate("variation_minustarget"))
-        dummy:addSubcard(card2.id)
+        room:moveCardTo(table.random(cards, 2), Card.PlayerHand, player, fk.ReasonJustMove, self.name, nil, false, player.id)
       end
-      room:moveCardTo(dummy, Card.PlayerHand, player, fk.ReasonJustMove, self.name, nil, false, player.id)
     elseif event == fk.CardUseFinished then
       room:moveCardTo(data.card, Card.PlayerHand, room:getPlayerById(self.cost_data), fk.ReasonGive, self.name, nil, true, player.id)
     end
