@@ -22,18 +22,18 @@ local desc_1v3 = [[
   第一阶段中固定为中坚-吕布-先锋-吕布-大将-吕布，无视座位变化。
 
   当神吕布的体力值即将降低到4或者更低时或者牌堆首次洗切时，神吕布立刻进入第二阶段：（6血6上限，
-  随机变更为暴怒战神或者神鬼无前，复原并弃置判定区内所有牌，结束一切结算并
+  随机变更为暴怒战神或者神鬼无前（若启用双将则改为自选），复原并弃置判定区内所有牌，结束一切结算并
   终止本轮游戏，进入新一轮并由神吕布第一个行动）
 
   第二阶段后，按照座次正常进行行动。
 
   ## 其他
 
-  撤退：被神吕布击杀的联军改为休整6轮。第一阶段中，因休整而消耗的回合不会导致神吕布进行回合。
+  撤退：被神吕布击杀的联军改为休整4轮（若启用双将则改为6轮）。第一阶段中，因休整而消耗的回合不会导致神吕布进行回合。
   
   重整：完成休整后的角色回满并摸6-X张牌（X为其体力值），复活的回合不能行动。
 
-  特殊摸牌：有联军撤退或阵亡时，队友可以选择是否摸一张牌。
+  特殊摸牌：有联军撤退或阵亡时，队友可以选择是否摸两张牌或回复一点体力（若启用双将则改为是否摸一张牌）。
 
   武器重铸：该模式下武器牌可重铸。
 
@@ -223,6 +223,7 @@ local m_1v3_rule = fk.CreateTriggerSkill{
   end,
   on_refresh = function(self, event, target, player, data)
     local room = player.room
+    local n = room.settings.enableDeputy and 2 or 1
     if event == fk.DrawInitialCards then
       if player.seat == 1 then data.num = 8
       else data.num = player.seat + 1 end
@@ -231,7 +232,11 @@ local m_1v3_rule = fk.CreateTriggerSkill{
     elseif event == fk.BeforeGameOverJudge then
       if data.damage and data.damage.from == room:getLord() then
         player._splayer:setDied(false)
-        room:setPlayerRest(player, 6)
+        if n == 1 then 
+         room:setPlayerRest(player, 4)
+        else
+          room:setPlayerRest(player, 6)
+        end
         player.tag["hulaoRest"] = true
       end
       local onlyLvbu = #room:getOtherPlayers(room:getLord()) == 0
@@ -240,8 +245,20 @@ local m_1v3_rule = fk.CreateTriggerSkill{
       end
     elseif event == fk.Deathed then
       for _, p in ipairs(room.alive_players) do
-        if p.role == player.role and room:askForSkillInvoke(p, self.name, nil, "#m_1v3_death_draw") then
-          p:drawCards(1)
+        if p.role == player.role then
+         if n == 2 then
+           if room:askForSkillInvoke(p, self.name, nil, "#m_1v3_death_draw") then
+              p:drawCards(1)
+            end
+          else
+            local choices = {"#m_1v3_draw2", "Cancel"}
+            if p:isWounded() then
+              table.insert(choices, 2, "#m_1v3_heal")
+            end
+            local choice = room:askForChoice(p, choices, self.name)
+            if choice == "#m_1v3_draw2" then p:drawCards(2, self.name)
+            else room:recover{ who = p, num = 1, skillName = self.name } end
+          end
         end
       end
     elseif event == fk.BeforeHpChanged or event == fk.AfterDrawPileShuffle then
@@ -249,7 +266,10 @@ local m_1v3_rule = fk.CreateTriggerSkill{
       room:notifySkillInvoked(player, "m_1v3_convert", "big")
       room:setTag("m_1v3_phase2", true)
       local generals = { "hulao__godlvbu2", "hulao__godlvbu3" }
-      local g = room:askForGeneral(player, generals, 1, true)
+      local g = {}
+      if n == 1 then 
+        g = table.random(generals)
+      else g = room:askForGeneral(player, generals, 1, true) end
       room:changeHero(player, g, false, false, true, false, false)
       room:changeMaxHp(player, 6 - player.maxHp)
       room:changeHp(player, 6 - player.hp, nil, self.name)
@@ -311,6 +331,8 @@ Fk:loadTranslationTable{
   ["m_1v3_mode"] = "虎牢关1v3",
   [":m_1v3_mode"] = desc_1v3,
   ["#m_1v3_death_draw"] = "是否摸一张牌？",
+  ["#m_1v3_draw2"] = "摸两张牌",
+  ["#m_1v3_heal"] = "回复1点体力",
   ["#m_1v3_rule"] = "虎牢关规则",
   ["m_1v3_convert"] = "暴怒",
   -- ["time limitation: 2 min"] = "游戏时长达到2分钟",
