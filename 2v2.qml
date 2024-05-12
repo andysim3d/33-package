@@ -13,6 +13,7 @@ GraphicsBox {
   property string friend_selected: ""
   property string my_recommend
   property string selected
+  property bool initial: true
   width: 70 + 100 * my_cards.length
   height: 360
 
@@ -164,14 +165,17 @@ GraphicsBox {
       anchors.horizontalCenter: parent.horizontalCenter
       spacing: 8
 
-      /*
       MetroButton {
         id: convertBtn
-        visible: !convertDisabled
+        // visible: !convertDisabled
+        enabled: false
         text: Backend.translate("Same General Convert")
-        onClicked: roomScene.startCheat("SameConvert", { cards: generalList });
+        onClicked: {
+          cheatLoader.sourceComponent = Qt.createComponent("./SameConvertFrame.qml");
+          cheatLoader.item.extra_data = { cards: my_cards };
+          cheatDrawer.open();
+        }
       }
-      */
 
       MetroButton {
         id: fightButton
@@ -205,6 +209,27 @@ GraphicsBox {
       .arg(Backend.translate("seat#" + roomScene.getPhoto(Self.id).seatNumber))
     friend_cards = data.friend;
     my_cards = data.me;
+
+    for (let generalName of data.me) {
+      if (lcall("GetSameGenerals", generalName).length > 0) {
+        convertBtn.enabled = true;
+        break;
+      }
+    }
+
+    root.initial = false;
+  }
+
+  onMy_cardsChanged: {
+    if (root.initial) {
+      return;
+    }
+
+    ClientInstance.notifyServer("PushRequest", "updatemini,updateFriendCards," + my_cards.join("|"));
+    if (root.selected && !my_cards.includes(root.selected)) {
+      root.selected = "";
+      ClientInstance.notifyServer("PushRequest", "updatemini,preselect," + root.selected);
+    }
   }
 
   function updateData(data) {
@@ -218,6 +243,8 @@ GraphicsBox {
       friend_selected = value;
     } else if (type == "recommend") {
       my_recommend = value;
+    } else if (type == "updateFriendCards") {
+      friend_cards = value.split("|");
     }
   }
 }
