@@ -169,7 +169,7 @@ GraphicsBox {
         id: convertBtn
         // visible: !convertDisabled
         enabled: false
-        text: Backend.translate("Same General Convert")
+        text: luatr("Same General Convert")
         onClicked: {
           cheatLoader.sourceComponent = Qt.createComponent("./SameConvertFrame.qml");
           cheatLoader.item.extra_data = { cards: my_cards };
@@ -179,7 +179,7 @@ GraphicsBox {
 
       MetroButton {
         id: fightButton
-        text: Backend.translate("Fight")
+        text: luatr("Fight")
         width: 120
         height: 35
         enabled: root.selected !== ""
@@ -195,7 +195,7 @@ GraphicsBox {
       MetroButton {
         id: detailBtn
         enabled: root.selected !== ""
-        text: Backend.translate("Show General Detail")
+        text: luatr("Show General Detail")
         onClicked: roomScene.startCheat(
           "GeneralDetail",
           { generals: [root.selected] }
@@ -206,7 +206,7 @@ GraphicsBox {
 
   function loadData(data) {
     root.title.text = ("你的座次是 %1 , 请选择")
-      .arg(Backend.translate("seat#" + roomScene.getPhoto(Self.id).seatNumber))
+      .arg(luatr("seat#" + roomScene.getPhoto(Self.id).seatNumber))
     friend_cards = data.friend;
     my_cards = data.me;
 

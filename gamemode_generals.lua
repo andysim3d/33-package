@@ -721,7 +721,7 @@ huangfusong:addSkill(vd__fenyue)
 Fk:loadTranslationTable{
   ["vd__huangfusong"] = "皇甫嵩",
   ["#vd__huangfusong"] = "志定雪霜",
-	["designer:vd__huangfusong"] = "千幻",
+  ["designer:vd__huangfusong"] = "千幻",
   ["illustrator:vd__huangfusong"] = "秋呆呆",
   ["vd__fenyue"] = "奋钺",
   [":vd__fenyue"] = "出牌阶段限X次，你可以与一名角色拼点，若你赢，你选择一项：1.其不能使用或打出手牌直到回合结束；2.视为你对其使用一张不计入次数的【杀】。若你没赢，你结束出牌阶段(X为存活的忠臣数)。",

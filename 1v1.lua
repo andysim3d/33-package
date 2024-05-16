@@ -45,6 +45,9 @@ local m_1v1_getLogic = function()
     room.current = lord
     local nonlord = room.players[2]
 
+    nonlord.role_shown = true
+    room:broadcastProperty(nonlord, "role")
+
     local lord_generals = {}
     local nonlord_generals = {}
     for _, g in ipairs(Fk.packages["gamemode_generals"].generals) do

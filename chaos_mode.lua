@@ -149,8 +149,8 @@ local chaos_event = { "chaos_luanwu", "generous_reward", "burning_one's_boats", 
 local chaos_rule = fk.CreateTriggerSkill{
   name = "#chaos_rule",
   priority = 0.001,
-  refresh_events = {fk.GameStart, fk.GameOverJudge, fk.Deathed, fk.RoundStart, fk.TurnStart, fk.TurnEnd, fk.DamageInflicted, fk.RoundEnd, fk.HpChanged, fk.MaxHpChanged},
-  can_refresh = function(self, event, target, player, data)
+  events = {fk.GameStart, fk.GameOverJudge, fk.Deathed, fk.RoundStart, fk.TurnStart, fk.TurnEnd, fk.DamageInflicted, fk.RoundEnd, fk.HpChanged, fk.MaxHpChanged},
+  can_trigger = function(self, event, target, player, data)
     local room = player.room
     if event == fk.GameStart then return player.seat == 1 end
     if target ~= player then return false end
@@ -168,7 +168,8 @@ local chaos_rule = fk.CreateTriggerSkill{
     end
     return true
   end,
-  on_refresh = function(self, event, target, player, data)
+  on_cost = Util.TrueFunc,
+  on_use = function(self, event, target, player, data)
     local room = player.room
     if event == fk.GameStart then
       room:setTag("SkipNormalDeathProcess", true)
@@ -248,10 +249,10 @@ local chaos_rule = fk.CreateTriggerSkill{
       end
     elseif event == fk.HpChanged or event == fk.MaxHpChanged then
       if not player:isWounded() and player:getMark("_chaos_mode_bazhen") > 0 then
-        room:removePlayerMark(player, "_chaos_mode_bazhen")
+        room:setPlayerMark(player, "_chaos_mode_bazhen", 0)
         room:handleAddLoseSkills(player, "-bazhen", nil, false, false)
       elseif not player:hasSkill("bazhen") and player:isWounded() then
-        room:addPlayerMark(player, "_chaos_mode_bazhen")
+        room:setPlayerMark(player, "_chaos_mode_bazhen", 1)
         room:handleAddLoseSkills(player, "bazhen", nil, false, false)
       end
     elseif event == fk.TurnStart then
@@ -303,7 +304,7 @@ local chaos_rule = fk.CreateTriggerSkill{
       end
     elseif event == fk.DamageInflicted then
       data.damage = data.damage + 1
-    else
+    elseif event == fk.RoundEnd then
       if room:getTag("RoundCount") == 1 then
         for _, p in ipairs(room.alive_players) do
           if p:getMark("_chaos_mode_bazhen") > 0 then
@@ -317,8 +318,7 @@ local chaos_rule = fk.CreateTriggerSkill{
           local n = p:getHandcardNum()
           if n < num then
             num = n
-            targets = {}
-            table.insert(targets, p.id)
+            targets = {p.id}
           elseif n == num then
             table.insert(targets, p.id)
           end
