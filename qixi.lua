@@ -215,7 +215,7 @@ local sheshen = fk.CreateTriggerSkill{
       from = data.from,
       to = player,
       damage = data.damage,
-      damageType = data.type,
+      damageType = data.damageType,
       skillName = self.name,
     }
     return true
@@ -257,6 +257,7 @@ local lianzhi = fk.CreateTriggerSkill{
   can_trigger = function(self, event, target, player, data)
     return target == player and player:hasSkill(self) and data.card.type == Card.TypeEquip and
       player.room:getPlayerById(player:getMark('qixi_couple')) ~= nil
+      and not player.room:getPlayerById(player:getMark('qixi_couple')).dead
   end,
   on_use = function(self, event, target, player, data)
     player.room:getPlayerById(player:getMark('qixi_couple')):drawCards(1, self.name)
@@ -458,6 +459,8 @@ local qixi_get_logic = function()
     end
 
     room:askForChooseKingdom(nonlord)
+
+    room:setBanner("@[:]mode_desc", "qixi_short_desc")
   end
 
   function qixi_logic:attachSkillToPlayers()
@@ -488,13 +491,14 @@ local qixi_jieban = fk.CreateActiveSkill{
   end,
   card_num = 1,
   target_num = 1,
+  prompt = "#qixi_jieban-promot",
   card_filter = function(self, to_select, selected)
     if #selected ~= 0 then return end
     local c = Fk:getCardById(to_select)
     return c.trueName == 'peach' or c.sub_type == Card.SubtypeArmor
   end,
-  target_filter = function(self, to_select, selected)
-    return #selected == 0 and canPayCourtTo(Self, Fk:currentRoom():getPlayerById(to_select))
+  target_filter = function(self, to_select, selected, cards)
+    return #selected == 0 and canPayCourtTo(Self, Fk:currentRoom():getPlayerById(to_select)) and #cards == 1
   end,
   on_use = function (self, room, effect)
     local from = room:getPlayerById(effect.from)
@@ -559,7 +563,7 @@ local qixi_rule = fk.CreateTriggerSkill{
   can_trigger = function(self, event, target, player, data)
     if target ~= player then return false end
     if event == fk.DamageCaused then
-      return player:getMark('qixi_couple') == 0 and data.damage >= data.to.hp
+      return player:getMark('qixi_couple') == 0 and data.damage >= (data.to.hp + data.to.shield)
     elseif event == fk.DrawNCards then
       return player:getMark('@qixi_couple_pink') ~= 0
     elseif event == fk.EventPhaseStart then
@@ -596,7 +600,7 @@ local qixi_rule = fk.CreateTriggerSkill{
       if table.find(room:getOtherPlayers(player), function(p)
         return canPayCourtTo(player, p)
       end) then
-
+        room:sendLog{type = "#QixiModeNegative", from = player.id, toast = true }
         return true
       else
         data.damage = data.damage + 1
@@ -645,10 +649,19 @@ Fk:loadTranslationTable{
     '【桃】或者防具牌交给一名未结伴的异性角色并将其设为追求目标；' ..
     '然后若其的追求目标是你，双方移除追求目标并结为伴侣。' ..
     '<br/>伴侣确定后就无法更改，即使死亡也无法将二人分开。',
+  ["#qixi_jieban-promot"] = "结伴：将一张【桃】或者防具牌交给一名未结伴的异性角色，追求该角色",
   ['@qixi_pay_court'] = '追求',
   ['@qixi_couple'] = '伴侣',
   ['@qixi_couple_blue'] = '<font color="#87CEFA">伴侣</font>',
   ['@qixi_couple_pink'] = '<font color="#FFB6C1">伴侣</font>',
+  ["@[:]mode_desc"] = "模式简介",
+  ["qixi_short_desc"] = "七夕",
+  [":qixi_short_desc"] = "◆获胜条件为击杀除了自己和伴侣之外的所有其他角色。"
+  .."<br>◆发动技能“结伴”追求异性，互相发动“结伴”后即结为伴侣。"
+  .."<br>◆当无伴侣的角色造成致命伤害时，若场上没有可以被追求的角色，则伤害+1，否则防止伤害。"
+  .."<br>◆击杀伴侣的角色弃置所有牌并失去一点体力。"
+  .."<br>◆击杀非伴侣角色，自己和伴侣各摸牌。",
+  ["#QixiModeNegative"] = "由于 %from 没有伴侣，防止其造成致命伤害",
 }
 
 return qixi_mode
