@@ -81,6 +81,7 @@ local m_2v2_getLogic = function()
     for _, p in ipairs(nonlord) do
       local general = json.decode(p.client_reply)
       room:setPlayerGeneral(p, general, true, true)
+      room:findGeneral(general)
     end
     --[[
     for _, p in ipairs(nonlord) do

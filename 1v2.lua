@@ -67,6 +67,9 @@ local m_1v2_getLogic = function()
     end
     generals = table.filter(generals, function(g) return not table.contains(selected, g) end)
     room:returnToGeneralPile(generals)
+    for _, g in ipairs(selected) do
+      room:findGeneral(g)
+    end
     room:askForChooseKingdom(nonlord)
 
     for _, p in ipairs(nonlord) do
