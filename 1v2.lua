@@ -74,8 +74,36 @@ local m_1v2_getLogic = function()
 
     for _, p in ipairs(nonlord) do
       room:broadcastProperty(p, "general")
+    end
+    room:setTag("SkipNormalDeathProcess", true)
+  end
+
+
+  function m_1v2_logic:attachSkillToPlayers()
+    local room = self.room
+    local players = room.players
+  
+    local addRoleModSkills = function(player, skillName)
+      local skill = Fk.skills[skillName]
+      if not skill then
+        fk.qCritical("Skill: "..skillName.." doesn't exist!")
+        return
+      end
+      if skill.lordSkill then
+        return
+      end
+      if #skill.attachedKingdom > 0 and not table.contains(skill.attachedKingdom, player.kingdom) then
+        return
+      end
+  
+      room:handleAddLoseSkills(player, skillName, nil, false)
+    end
+    for _, p in ipairs(room.alive_players) do
+      for _, s in ipairs(Fk.generals[p.general]:getSkillNameList(false)) do
+        addRoleModSkills(p, s)
+      end
       if p.role == "lord" then
-        room:broadcastProperty(p, "kingdom")
+        room:handleAddLoseSkills(p, "m_feiyang|m_bahu", nil, false)
       end
     end
   end
@@ -128,7 +156,7 @@ local m_bahu = fk.CreateTriggerSkill{
     return target == player and player:hasSkill(self) and player.phase == Player.Start
   end,
   on_use = function(self, event, target, player, data)
-    player:drawCards(1)
+    player:drawCards(1, self.name)
   end,
 }
 m_bahu:addRelatedSkill(m_bahubuff)
@@ -136,31 +164,23 @@ Fk:addSkill(m_bahu)
 local m_1v2_rule = fk.CreateTriggerSkill{
   name = "#m_1v2_rule",
   priority = 0.001,
-  refresh_events = {fk.GameStart, fk.Deathed},
-  can_refresh = function(self, event, target, player, data)
-    return event == fk.GameStart and player.role == "lord" or (target == player and player.rest == 0)
+  mute = true,
+  events = {fk.BuryVictim},
+  can_trigger = function(self, event, target, player, data)
+    return target ~= player and target.rest == 0 and target.role == "rebel" and player.role == "rebel"
   end,
-  on_refresh = function(self, event, target, player, data)
+  on_cost = Util.TrueFunc,
+  on_use = function(self, event, target, player, data)
     local room = player.room
-    if event == fk.GameStart then
-      room:handleAddLoseSkills(player, "m_feiyang|m_bahu", nil, false)
-      player.maxHp = player.maxHp + 1
-      player.hp = player.hp + 1
-      room:broadcastProperty(player, "maxHp")
-      room:broadcastProperty(player, "hp")
-      room:setTag("SkipNormalDeathProcess", true)
+    local choices = {"m_1v2_draw2", "Cancel"}
+    if player:isWounded() then
+      table.insert(choices, 2, "m_1v2_heal")
+    end
+    local choice = room:askForChoice(player, choices, self.name)
+    if choice == "m_1v2_draw2" then
+      player:drawCards(2, self.name)
     else
-      for _, p in ipairs(room.alive_players) do
-        if p.role == "rebel" then
-          local choices = {"m_1v2_draw2", "Cancel"}
-          if p:isWounded() then
-            table.insert(choices, 2, "m_1v2_heal")
-          end
-          local choice = room:askForChoice(p, choices, self.name)
-          if choice == "m_1v2_draw2" then p:drawCards(2, self.name)
-          else room:recover{ who = p, num = 1, skillName = self.name } end
-        end
-      end
+      room:recover{ who = player, num = 1, skillName = self.name }
     end
   end,
 }
@@ -182,6 +202,12 @@ local m_1v2_mode = fk.CreateGameMode{
 
     return surrenderJudge
   end,
+  get_adjusted = function (self, player)
+    if player.role == "lord" then
+      return {hp = player.hp + 1, maxHp = player.maxHp + 1}
+    end
+    return {}
+  end
 }
 
 Fk:loadTranslationTable{
