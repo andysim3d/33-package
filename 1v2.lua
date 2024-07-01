@@ -167,7 +167,7 @@ local m_1v2_rule = fk.CreateTriggerSkill{
   mute = true,
   events = {fk.BuryVictim},
   can_trigger = function(self, event, target, player, data)
-    return target ~= player and target.rest == 0 and target.role == "rebel" and player.role == "rebel"
+    return target ~= player and target.rest == 0 and target.role == "rebel" and player.role == "rebel" and not player.dead
   end,
   on_cost = Util.TrueFunc,
   on_use = function(self, event, target, player, data)
