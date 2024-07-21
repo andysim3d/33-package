@@ -59,7 +59,7 @@ local espionage = fk.CreateGameMode{
 }
 
 Fk:loadTranslationTable{
-  ["espionage"] = "用间测试版",
+  ["espionage"] = "用间",
   [":espionage"] = description,
 }
 

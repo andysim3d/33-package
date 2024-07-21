@@ -61,7 +61,7 @@ local variation = fk.CreateGameMode{
 }
 
 Fk:loadTranslationTable{
-  ["variation"] = "应变测试版",
+  ["variation"] = "应变",
   [":variation"] = description,
 }
 

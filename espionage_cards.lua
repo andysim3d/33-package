@@ -39,9 +39,7 @@ local stab__slash_trigger = fk.CreateTriggerSkill{
   can_trigger = function(self, event, target, player, data)
     return data.card.name == "stab__slash" and data.to == player.id and not player.dead and not player:isKongcheng()
   end,
-  on_cost = function(self, event, target, player, data)
-    return true
-  end,
+  on_cost = Util.TrueFunc,
   on_use = function(self, event, target, player, data)
     local room = player.room
     local card = room:askForDiscard(player, 1, 1, false, self.name, true, ".", "#stab__slash-discard:::"..data.card:toLogString(), true)
@@ -232,9 +230,6 @@ addPreasentCard(Fk:cloneCard("amazing_grace", Card.Heart, 3))
 local bogusFlowerSkill = fk.CreateActiveSkill{
   name = "bogus_flower_skill",
   mod_target_filter = Util.TrueFunc,
-  can_use = function(self, player, card)
-    return not player:isProhibited(player, card)
-  end,
   on_use = function(self, room, cardUseEvent)
     if not cardUseEvent.tos or #TargetGroup:getRealTargets(cardUseEvent.tos) == 0 then
       cardUseEvent.tos = { { cardUseEvent.from } }
@@ -367,7 +362,7 @@ local lootingSkill = fk.CreateActiveSkill{
     if player.dead or target.dead then return end
     if room:getCardOwner(id) == target and room:getCardArea(id) == Card.PlayerHand then
       if room:askForSkillInvoke(target, self.name, nil, "#looting-give:"..player.id.."::"..effect.card:toLogString()) then
-        room:obtainCard(player, id, true, fk.ReasonGive)
+        room:obtainCard(player, id, true, fk.ReasonGive, player.id, "looting")
       else
         room:damage({
           from = player,
@@ -533,7 +528,8 @@ local womenDressSkill = fk.CreateTriggerSkill{
   frequency = Skill.Compulsory,
   events = {fk.TargetConfirmed},
   can_trigger = function(self, event, target, player, data)
-    return target == player and player:hasSkill(self) and player.gender == General.Male and data.card.trueName == "slash"
+    return target == player and player:hasSkill(self) and (player.gender == General.Male or player.gender == General.Bigender) and
+      data.card.trueName == "slash"
   end,
   on_use = function(self, event, target, player, data)
     local room = player.room
@@ -562,10 +558,15 @@ Fk:loadTranslationTable{
   [":women_dress"] = "装备牌·防具<br/><b>防具技能</b>：锁定技，若你是男性角色，当你成为【杀】的目标后，你判定，若结果为黑色，此【杀】伤害+1。",
 }
 
+local elephantSkill = fk.CreateTriggerSkill{  --需要一个空技能以判断equip_skill是否无效
+  name = "#elephant_skill",
+  attached_equip = "elephant",
+}
 local elephant = fk.CreateDefensiveRide{
   name = "elephant",
   suit = Card.Heart,
   number = 13,
+  equip_skill = elephantSkill,
 }
 addPreasentCard(elephant)
 Fk:loadTranslationTable{

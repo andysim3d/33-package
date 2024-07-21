@@ -62,7 +62,8 @@ local IceDamageSkill = fk.CreateTriggerSkill{
   mute = true,
   events = {fk.DamageCaused},
   can_trigger = function(self, event, target, player, data)
-    return target == player and data.damageType == fk.IceDamage and not data.chain and not data.to:isNude()
+    return target == player and data.damageType == fk.IceDamage and data.card and data.card.name == "ice__slash" and
+      not data.chain and not data.to:isNude()
   end,
   on_cost = function (self, event, target, player, data)
     return player.room:askForSkillInvoke(player, self.name, nil, "#ice_damage_skill-invoke::"..data.to.id)
@@ -443,6 +444,7 @@ local blackChainSkill = fk.CreateTriggerSkill{
     return target == player and player:hasSkill(self) and data.card and data.card.trueName == "slash" and
       not player.room:getPlayerById(data.to).chained
   end,
+  on_cost = Util.TrueFunc,
   on_use = function(self, event, target, player, data)
     player.room:getPlayerById(data.to):setChainState(true)
   end,
@@ -459,7 +461,7 @@ extension:addCard(blackChain)
 Fk:loadTranslationTable{
   ["black_chain"] = "乌铁锁链",
   ["#black_chain_skill"] = "乌铁锁链",
-  [":black_chain"] = "装备牌·武器<br/><b>攻击范围</b>：3<br/><b>武器技能</b>：当你使用【杀】指定目标后，你可以横置目标角色武将牌。",
+  [":black_chain"] = "装备牌·武器<br/><b>攻击范围</b>：3<br/><b>武器技能</b>：当你使用【杀】指定目标后，横置目标角色的武将牌。",
 }
 
 local fiveElementsFanSkill = fk.CreateTriggerSkill{
@@ -470,7 +472,7 @@ local fiveElementsFanSkill = fk.CreateTriggerSkill{
     return target == player and player:hasSkill(self) and data.card.name ~= "slash" and data.card.trueName == "slash"
   end,
   on_cost = function (self, event, target, player, data)
-    local all_choices = {}
+    local all_choices = {"thunder__slash", "fire__slash", "ice__slash"}
     for _, id in ipairs(Fk:getAllCardIds()) do
       local card = Fk:getCardById(id)
       if card.trueName == "slash" and card.name ~= "slash" then
@@ -498,7 +500,7 @@ local fiveElementsFanSkill = fk.CreateTriggerSkill{
       card.id = data.card.id
     end
     card.skillNames = data.card.skillNames
-    card.skillName = "fan"
+    card.skillName = "five_elements_fan"
     data.card = card
   end,
 }
@@ -514,7 +516,8 @@ extension:addCard(fiveElementsFan)
 Fk:loadTranslationTable{
   ["five_elements_fan"] = "五行鹤翎扇",
   ["#five_elements_fan_skill"] = "五行鹤翎扇",
-  [":five_elements_fan"] = "装备牌·武器<br/><b>攻击范围</b>：4<br/><b>武器技能</b>：当你声明使用属性【杀】后，你可以将此【杀】改为任意其他属性【杀】。",
+  [":five_elements_fan"] = "装备牌·武器<br/><b>攻击范围</b>：4<br/><b>武器技能</b>：当你声明使用非普通【杀】后，你可以将此【杀】改为"..
+  "雷【杀】、火【杀】、冰【杀】或任意其他非普通【杀】。",
 }
 
 extension:addCards{
@@ -547,11 +550,12 @@ local putEquip = fk.CreateActiveSkill{
   card_num = 1,
   target_num = 1,
   card_filter = function(self, to_select, selected, targets)
-    return #selected == 0 and Fk:getCardById(to_select).type == Card.TypeEquip and not Fk:currentRoom():getCardArea(to_select) == Player.Equip
+    return #selected == 0 and Fk:getCardById(to_select).type == Card.TypeEquip and
+      Fk:currentRoom():getCardArea(to_select) ~= Player.Equip
   end,
   target_filter = function(self, to_select, selected, cards)
     return #selected == 0 and #cards == 1 and to_select ~= Self.id and
-      Fk:currentRoom():getPlayerById(to_select):getEquipment(Fk:getCardById(cards[1]).sub_type) == nil
+      Fk:currentRoom():getPlayerById(to_select):hasEmptyEquipSlot(Fk:getCardById(cards[1]).sub_type)
   end,
   on_use = function(self, room, effect)
     room:moveCards({
