@@ -15,6 +15,7 @@ extension:addGameMode(require "packages/gamemode/variation")
 extension:addGameMode(require "packages/gamemode/vanished_dragon")
 extension:addGameMode(require "packages/gamemode/qixi")
 extension:addGameMode(require "packages/gamemode/zombie_mode")
+extension:addGameMode(require "packages/gamemode/kangqin")
 
 local chaos_mode_cards = require "packages/gamemode/chaos_mode_cards"
 local espionage_cards = require "packages/gamemode/espionage_cards"
