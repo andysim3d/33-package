@@ -507,60 +507,31 @@ local chunqiu = fk.CreateTriggerSkill{
   name = "#kq__chunqiu",
   priority = 0.001,
   mute = true,
-  events = {fk.GameStart, fk.BeforeCardsMove},
+  events = {fk.DrawNCards, fk.BeforeDrawCard},
   can_trigger = function(self, event, target, player, data)
-    if event == fk.GameStart then
-      return true
-    elseif isGeneral(player, "lvbuwei") then
-      for _, move in ipairs(data) do
-        if move.to == player.id and move.moveReason == fk.ReasonDraw then
-          return true
-        end
-      end
+    if target ~= player then return end
+    if event == fk.DrawNCards then
+      return player:isMale()
+    else
+      return isGeneral(player, "lvbuwei")
     end
   end,
   on_cost = Util.TrueFunc,
   on_use = function(self, event, target, player, data)
     local room = player.room
-    if event == fk.GameStart then
-      for _, p in ipairs(room.players) do
-        if p:isMale() then
-          room:handleAddLoseSkills(p, "#kq__chunqiu_draw")
-        end
-      end
+    room:notifySkillInvoked(player, self.name, "special")
+    if event == fk.DrawNCards then
+      data.n = data.n + 1
     else
-      room:notifySkillInvoked(player, self.name, "special")
-      for _, move in ipairs(data) do
-        if move.to == player.id and move.moveReason == fk.ReasonDraw then
-          local newInfo = { fromArea = Card.DrawPile }
-          local card = room:getNCards(1)
-          if card and #card == 1 then
-            newInfo.cardId = card[1]
-            table.insert(move.moveInfo, newInfo)
-          end
-        end
-      end
+      data.num = data.num + 1
     end
   end,
 }
 Fk:addSkill(chunqiu)
 
-local chunqiu_draw = fk.CreateTriggerSkill{
-  name = "#kq__chunqiu_draw",
-  mute = true,
-  events = {fk.DrawNCards},
-  on_cost = Util.TrueFunc,
-  on_use = function(self, event, target, player, data)
-    player.room:notifySkillInvoked(player, self.name, "special")
-    data.n = data.n + 1
-  end,
-}
-Fk:addSkill(chunqiu_draw)
-
 trans["#kq__chunqiu"] = "吕氏春秋"
 trans[":#kq__chunqiu"] = "所有男性角色的额定摸牌数+1；"
   .."若场上有吕不韦，当吕不韦摸牌时，摸牌数+1。"
-trans["#kq__chunqiu_draw"] = "吕氏春秋"
 
 -- 沙丘之变
 local shaqiu = fk.CreateTriggerSkill{
@@ -573,8 +544,8 @@ local shaqiu = fk.CreateTriggerSkill{
   end,
   on_cost = Util.TrueFunc,
   on_use = function (self, event, target, player, data)
-    room:notifySkillInvoked(player, self.name, "special")
     local room = player.room
+    room:notifySkillInvoked(player, self.name, "special")
     local tos = table.filter(room.alive_players, function (p)
       return p:isMale()
     end)
@@ -629,8 +600,15 @@ local zhaoji = fk.CreateTriggerSkill{
   priority = 0.001,
   events = {fk.DamageCaused},
   can_trigger = function(self, event, target, player, data)
+    local room = player.room
     local from = data.from
-    if not target == player or not data.from or from:getMark("kq_zjzl-turn") == 1 then return end
+    if target ~= player then return end
+    local events = room.logic:getEventsOfScope(GameEvent.Damage, 2, function (e)
+      for _, dmg_data in ipairs(e.data) do
+        return dmg_data.from and dmg_data.from == from
+      end
+    end, player.HistoryTurn)
+    if #events > 1 then return end
     if numOnfield(player.room, "zhaoji") > 0 then
       return from.kingdom ~= "qin"
     else
@@ -642,7 +620,6 @@ local zhaoji = fk.CreateTriggerSkill{
     local room = player.room
     room:notifySkillInvoked(player, self.name, "special")
     data.damage = data.damage - 1
-    room:setPlayerMark(data.from, "kq_zjzl-turn", 1)
   end,
 }
 Fk:addSkill(zhaoji)
