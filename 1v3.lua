@@ -84,11 +84,18 @@ local m_1v3_getLogic = function()
     for _, p in ipairs(room.players) do
       local general, deputy
       if p.role == "lord" then
-        general = "hulao__godlvbu1"
+        local generals = {}
+        for _, g in pairs(Fk.generals) do
+          if g.hulao_status == 1 and
+            not table.contains(room.disabled_packs, g.package.name) and
+            not table.contains(room.disabled_generals, g) then
+            table.insert(generals, g)
+          end
+        end
+        generals = table.map(generals, Util.NameMapper)
+        general = room:askForGeneral(p, generals, 1)
         if n == 2 then
-          local generals = Fk:getGeneralsRandomly(generalNum, nil, nil, function(g)
-            return g.name:startsWith("hulao__")
-          end)
+          generals = Fk:getGeneralsRandomly(generalNum)
           generals = table.map(generals, Util.NameMapper)
           deputy = room:askForGeneral(p, generals, 1)
         else
@@ -98,9 +105,7 @@ local m_1v3_getLogic = function()
           p.request_start = start
         end
       else
-        local generals = Fk:getGeneralsRandomly(generalNum, nil, nil, function(g)
-          return g.name:startsWith("hulao__")
-        end)
+        local generals = Fk:getGeneralsRandomly(generalNum)
         generals = table.map(generals, Util.NameMapper)
         local g = room:askForGeneral(p, generals, n)
         if n == 1 then g = { g } end
@@ -232,7 +237,7 @@ local m_1v3_rule = fk.CreateTriggerSkill{
     elseif event == fk.BeforeGameOverJudge then
       if data.damage and data.damage.from == room:getLord() then
         player._splayer:setDied(false)
-        if n == 1 then 
+        if n == 1 then
          room:setPlayerRest(player, 4)
         else
           room:setPlayerRest(player, 6)
@@ -265,12 +270,18 @@ local m_1v3_rule = fk.CreateTriggerSkill{
       local round = room.logic:getCurrentEvent():findParent(GameEvent.Round)
       room:notifySkillInvoked(player, "m_1v3_convert", "big")
       room:setTag("m_1v3_phase2", true)
-      local generals = { "hulao__godlvbu2", "hulao__godlvbu3" }
-      local g = {}
-      if n == 1 then 
-        g = table.random(generals)
-      else g = room:askForGeneral(player, generals, 1, true) end
-      room:changeHero(player, g, false, false, true, false, false)
+      local generals = {}
+      for _, g in pairs(Fk.generals) do
+        if g.hulao_status == 2 and
+          g.trueName == Fk.generals[player.general].trueName and
+          not table.contains(room.disabled_packs, g.package.name) and
+          not table.contains(room.disabled_generals, g) then
+          table.insert(generals, g)
+        end
+      end
+      generals = table.map(generals, Util.NameMapper)
+      local general = room:askForGeneral(player, generals, 1)
+      room:changeHero(player, general, false, false, true, false, false)
       room:changeMaxHp(player, 6 - player.maxHp)
       room:changeHp(player, 6 - player.hp, nil, self.name)
       player:throwAllCards('j')
