@@ -562,6 +562,7 @@ local elephantSkill = fk.CreateTriggerSkill{  --需要一个空技能以判断eq
   name = "#elephant_skill",
   attached_equip = "elephant",
 }
+Fk:addSkill(elephantSkill)
 local elephant = fk.CreateDefensiveRide{
   name = "elephant",
   suit = Card.Heart,
