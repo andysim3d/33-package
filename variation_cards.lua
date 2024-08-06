@@ -35,6 +35,8 @@ extension:addCards{
   Fk:cloneCard("slash", Card.Diamond, 8),
 }
 
+Fk:addDamageNature(fk.IceDamage, "ice_damage")
+
 local slash = Fk:cloneCard("slash")
 local iceSlashSkill = fk.CreateActiveSkill{
   name = "ice__slash_skill",
