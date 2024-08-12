@@ -93,11 +93,11 @@ local m_1v3_getLogic = function()
           end
         end
         generals = table.map(generals, Util.NameMapper)
-        general = room:askForGeneral(p, generals, 1)
+        general = room:askForGeneral(p, table.random(generals, generalNum), 1)
         if n == 2 then
           generals = Fk:getGeneralsRandomly(generalNum)
           generals = table.map(generals, Util.NameMapper)
-          deputy = room:askForGeneral(p, generals, 1)
+          deputy = room:askForGeneral(p, table.random(generals, generalNum), 1)
         else
           -- TODO: 需要深入，目前头疼医头
           p.request_timeout = room.timeout
@@ -280,7 +280,7 @@ local m_1v3_rule = fk.CreateTriggerSkill{
         end
       end
       generals = table.map(generals, Util.NameMapper)
-      local general = room:askForGeneral(player, generals, 1)
+      local general = room:askForGeneral(player, generals, 1, true)
       room:changeHero(player, general, false, false, true, false, false)
       room:changeMaxHp(player, 6 - player.maxHp)
       room:changeHp(player, 6 - player.hp, nil, self.name)

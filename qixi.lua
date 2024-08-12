@@ -52,28 +52,39 @@ local qixi_desc = [==[
 魏晋：
 
 - 曹操 & 除sp夏侯氏外所有女性武将
-- 曹丕 & 甄姬/郭照/段巧笑/薛灵芸
-- 司马懿 & 张春华
+- 曹丕 & 甄姬/郭照/段巧笑/薛灵芸/田尚衣
+- 曹叡 & 郭皇后
+- 司马懿 & 张春华/柏灵筠
 - 司马昭 & 王元姬
 - 司马师 & 夏侯徽/羊徽瑜
+- 司马炎 & 杨艳/杨芷/左棻
 - 庞德 & 李采薇
-- 甲虫 & 李婉/郭槐
+- 赵昂 & 王异
+- 贾充 & 李婉/郭槐
 - 王浑 & 钟琰
 - 杜预 & 宣公主
 - 钟繇 & 张昌蒲
+- 何晏 & 曹金玉
+- 庞山民 & 诸葛若雪
+- 蒯褀 & 诸葛梦雪
+- 曹髦 & 卞玥
+- 曹宇 & 张琪瑛
+- 夏侯楙 & 清河公主
 
 蜀：
 
 - 刘备 & 甘夫人/糜夫人/孙尚香/张楚/吴苋
 - 张飞 & 夏侯氏
-- 关羽 & 胡金定（暂无）
+- 关羽 & 胡金定
 - 孟获 & 祝融
 - 刘禅 & 星彩/张瑾云
 - 诸葛亮/卧龙 & 黄月英
 - 黄忠 & 刘赪
 - 马超 & 杨婉
-- 赵云 & 马云禄/周夷 （绷）
-- 关索 & 鲍三娘/王桃/王悦
+- 赵云 & 马云禄/周夷/樊玉凤
+- 关索 & 鲍三娘/王桃/王悦/花鬘
+- 刘理 & 马伶俐
+- 姜维 & 柳婒
 
 吴：
 
@@ -81,13 +92,15 @@ local qixi_desc = [==[
 - 周瑜 & 小乔
 - 孙策 & 大乔
 - 孙坚 & 吴国太
-- 孙皓 & 滕芳兰/张媱/张嫙 （太阴间了）
+- 孙皓 & 滕芳兰/张媱/张嫙
 - 陆逊 & 孙茹
-- 孙登 & 芮姬/周妃（孙登暂无）
-- 张奋 & 孙翎鸾 （绝望）
+- 孙登 & 芮姬/周妃
+- 张奋 & 孙翎鸾
 - 滕胤 & 滕公主
 - 孙翊 & 徐氏
 - 全琮 & 孙鲁班
+- 孙亮 & 全惠解
+- 孙休 & 朱佩兰
 
 群：
 
@@ -98,14 +111,17 @@ local qixi_desc = [==[
 - 刘辩 & 唐姬
 - 刘表 & 蔡夫人
 - 张济 & 邹氏
-- 袁术 & 冯方女
+- 袁绍 & 刘夫人
+- 袁术 & 冯方女/董绾
 - 牛辅 & 董翓
+- 秦宜禄 & 杜夫人
 
 其他：
 
 - 女士兵 & 男士兵
 - 张角 & 黄巾雷使
 - 刘焉 & 卢氏
+- 吕不韦 & 赵姬
 
 ]==]
 
@@ -113,18 +129,27 @@ local U = require "packages/utility/utility"
 
 local couples = {
   -- wei
-  caopi = { "zhenji", "guozhao", "duanqiaoxiao", "xuelingyun" },
-  simayi = "zhangchunhua",
+  caopi = { "zhenji", "guozhao", "duanqiaoxiao", "xuelingyun", "tianshangyi" },
+  caorui = "guohuanghou",
+  simayi = {"zhangchunhua", "bailingyun"},
   simazhao = "wangyuanji",
   simashi = { "xiahouhui", "yanghuiyu" },
+  simayan = { "yangyan", "yangzhi", "zuofen" },
   pangde = "licaiwei",
+  zhaoang = "wangyi",
   jiachong = { "liwan", "guohuaij" },
   wanghun = "zhongyan",
   duyu = "xuangongzhu",
   zhongyao = "zhangchangpu",
+  heyan = "caojinyu",
+  pangshanmin = "zhugeruoxue",
+  kuaiqi = "zhugemengxue",
+  caomao = "bianyue",
+  caoyu = "zhangqiying",
+  xiahoumao = "qinghegongzhu",
 
   -- shu
-  liubei = { "ganfuren", "mifuren", "sunshangxiang", "zhangchu", "wuxian" },
+  liubei = { "ganfuren", "mifuren", "sunshangxiang", "zhangchu", "wuxian", "ganfurenmifuren" },
   zhangfei = "xiahoushi",
   guanyu = "hujinding",
   menghuo = "zhurong",
@@ -133,8 +158,10 @@ local couples = {
   wolong = "huangyueying",
   huangzhong = "liucheng",
   machao = "yangwan",
-  zhaoyun = {"mayunlu", "zhouyi"}, -- 绷
-  guansuo = { "baosanniang", "wangtao", "wangyues" },
+  zhaoyun = {"mayunlu", "zhouyi", "fanyufeng"}, -- 绷
+  guansuo = { "baosanniang", "wangtao", "wangyues", "huaman" },
+  liuliG = "malingli",
+  jiangwei = "liutan",
 
   -- wu
   sunquan = { "bulianshi", "yuanji", "panshu", "xielingyu", "zhaoyanw" },
@@ -148,6 +175,8 @@ local couples = {
   tengyin = "tenggongzhu",
   sunyi = "xushi",
   quancong = "sunluban",
+  sunliang = "quanhuijie",
+  sunxiu = "zhupeilan",
 
   -- qun
   lvbu = { "diaochan", "yanfuren" },
@@ -157,13 +186,16 @@ local couples = {
   liuhong = { "hetaihou", "wangrong" },
   liubian = "tangji",
   zhangji = "zoushi",
-  yuanshu = "fengfangnv",
+  yuanshao = "liufuren",
+  yuanshu = {"fengfangnv", "dongwan"},
   niufu = "dongxie",
+  qinyilu = "dufuren",
 
   -- misc
   blank_shibing = "blank_nvshibing",
   zhangjiao = "huangjinleishi",
   liuyan = "lushi",
+  lvbuwei = "zhaoji",
 }
 
 ---@param from ServerPlayer
