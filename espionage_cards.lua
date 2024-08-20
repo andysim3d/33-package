@@ -558,9 +558,13 @@ Fk:loadTranslationTable{
   [":women_dress"] = "装备牌·防具<br/><b>防具技能</b>：锁定技，若你是男性角色，当你成为【杀】的目标后，你判定，若结果为黑色，此【杀】伤害+1。",
 }
 
-local elephantSkill = fk.CreateTriggerSkill{  --需要一个空技能以判断equip_skill是否无效
+local elephantSkill = fk.CreateDistanceSkill{
   name = "#elephant_skill",
-  attached_equip = "elephant",
+  correct_func = function(self, from, to)
+    if to:hasSkill(self) then
+      return 1
+    end
+  end,
 }
 Fk:addSkill(elephantSkill)
 local elephant = fk.CreateDefensiveRide{
@@ -578,6 +582,11 @@ Fk:loadTranslationTable{
 local inferiorHorseSkill = fk.CreateDistanceSkill{
   name = "#inferior_horse_skill",
   frequency = Skill.Compulsory,
+  correct_func = function(self, from, to)
+    if from:hasSkill(self) then
+      return -1
+    end
+  end,
   fixed_func = function (self, from, to)
     if to:hasSkill(self) then
       return 1
