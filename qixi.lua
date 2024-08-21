@@ -253,6 +253,8 @@ local sheshen = fk.CreateTriggerSkill{
     return true
   end,
 }
+Fk:addSkill(sheshen)
+
 local gongdou = fk.CreateTriggerSkill{
   name = "qixi_gongdou",
   anim_type = "offensive",
@@ -282,6 +284,8 @@ local gongdou = fk.CreateTriggerSkill{
     }
   end,
 }
+Fk:addSkill(gongdou)
+
 local lianzhi = fk.CreateTriggerSkill{
   name = 'qixi_lianzhi',
   anim_type = 'drawcard',
@@ -295,6 +299,8 @@ local lianzhi = fk.CreateTriggerSkill{
     player.room:getPlayerById(player:getMark('qixi_couple')):drawCards(1, self.name)
   end,
 }
+Fk:addSkill(lianzhi)
+
 local qibie = fk.CreateTriggerSkill{
   name = 'qixi_qibie',
   anim_type = 'big',
@@ -322,9 +328,6 @@ local qibie = fk.CreateTriggerSkill{
   end,
 }
 
-Fk:addSkill(sheshen)
-Fk:addSkill(gongdou)
-Fk:addSkill(lianzhi)
 Fk:addSkill(qibie)
 
 Fk:loadTranslationTable{
@@ -343,22 +346,20 @@ Fk:loadTranslationTable{
 ---@param to ServerPlayer
 local function addCoupleSkill(from, to)
   local room = from.room
-  local k = from.gender == General.Male and from.kingdom or to.kingdom
-  if k == "wei" then
-    room:handleAddLoseSkills(from, "qixi_sheshen|-qixi_jieban|-" .. from.tag['qixi_rand_skill'])
-    room:handleAddLoseSkills(to, "qixi_sheshen|-qixi_jieban|-" .. to.tag['qixi_rand_skill'])
-  elseif k == "shu" then
-    room:handleAddLoseSkills(from, "qixi_gongdou|-qixi_jieban|-" .. from.tag['qixi_rand_skill'])
-    room:handleAddLoseSkills(to, "qixi_gongdou|-qixi_jieban|-" .. to.tag['qixi_rand_skill'])
-  elseif k == "wu" then
-    room:handleAddLoseSkills(from, "qixi_lianzhi|-qixi_jieban|-" .. from.tag['qixi_rand_skill'])
-    room:handleAddLoseSkills(to, "qixi_lianzhi|-qixi_jieban|-" .. to.tag['qixi_rand_skill'])
-  elseif k == "qun" then
-    room:handleAddLoseSkills(from, "qixi_qibie|-qixi_jieban|-" .. from.tag['qixi_rand_skill'])
-    room:handleAddLoseSkills(to, "qixi_qibie|-qixi_jieban|-" .. to.tag['qixi_rand_skill'])
+  local kingdom = from.gender == General.Male and from.kingdom or to.kingdom
+  local kingdom_skill_map = {
+    ["wei"] = "qixi_sheshen",
+    ["shu"] = "qixi_gongdou",
+    ["wu"] = "qixi_lianzhi",
+    ["qun"] = "qixi_qibie",
+  }
+  local skill = kingdom_skill_map[kingdom]
+  if table.contains({"wei", "shu", "wu", "qun"}, kingdom) then
+    room:handleAddLoseSkills(from, skill .. "|-qixi_jieban&|-" .. from.tag['qixi_rand_skill'])
+    room:handleAddLoseSkills(to, skill .. "|-qixi_jieban&|-" .. to.tag['qixi_rand_skill'])
   else
-    room:handleAddLoseSkills(from, "-qixi_jieban")
-    room:handleAddLoseSkills(to, "-qixi_jieban")
+    room:handleAddLoseSkills(from, "-qixi_jieban&")
+    room:handleAddLoseSkills(to, "-qixi_jieban&")
   end
 end
 
@@ -372,6 +373,80 @@ local function canPayCourtTo(from, to)
 
   return true
 end
+
+local qixi_jieban = fk.CreateActiveSkill{
+  name = "qixi_jieban&",
+  anim_type = "support",
+  can_use = function (self, player, card)
+    if player:usedSkillTimes(self.name, Player.HistoryPhase) > 0 then return false end
+    if player:getMark("qixi_couple") ~= 0 then return false end
+    --[[
+    local pid = player:getMark("qixi_pay_court")
+    local p = Fk:currentRoom():getPlayerById(pid)
+    return not p or p.dead or p:getMark("qixi_couple") ~= 0
+    --]]
+    return true
+  end,
+  card_num = 1,
+  target_num = 1,
+  prompt = "#qixi_jieban-promot",
+  card_filter = function(self, to_select, selected)
+    if #selected ~= 0 then return end
+    local c = Fk:getCardById(to_select)
+    return c.trueName == 'peach' or c.sub_type == Card.SubtypeArmor
+  end,
+  target_filter = function(self, to_select, selected, cards)
+    return #selected == 0 and canPayCourtTo(Self, Fk:currentRoom():getPlayerById(to_select)) and #cards == 1
+  end,
+  on_use = function (self, room, effect)
+    local from = room:getPlayerById(effect.from)
+    local to = room:getPlayerById(effect.tos[1])
+    room:obtainCard(to, effect.cards[1], true, fk.ReasonGive)
+
+    --- set court mark
+    ---@param from ServerPlayer
+    ---@param to ServerPlayer
+    ---@param clear? bool
+    local function setCourt(from, to, clear)
+      if clear then
+        for _, p in ipairs{from, to} do
+          room:setPlayerMark(p, "qixi_pay_court", 0)
+          room:setPlayerMark(p, "@qixi_pay_court", 0)
+        end
+      else
+        room:setPlayerMark(from, "qixi_pay_court", to.id)
+        room:setPlayerMark(from, "@qixi_pay_court", to.general)
+      end
+    end
+
+    setCourt(from, to)
+    if to:getMark('qixi_pay_court') == from.id then
+      setCourt(from, to, true)
+
+      room:setPlayerMark(from, "qixi_couple", to.id)
+      room:setPlayerMark(to, "qixi_couple", from.id)
+      addCoupleSkill(from, to)
+      local couple = isCoupleGeneral(from, to)
+      if couple then
+        room:setPlayerMark(from, to.gender == General.Female and "@qixi_couple_pink" or "@qixi_couple_blue", to.general)
+        room:setPlayerMark(to, from.gender == General.Female and "@qixi_couple_pink" or "@qixi_couple_blue", from.general)
+      else
+        room:setPlayerMark(from, "@qixi_couple", to.general)
+        room:setPlayerMark(to, "@qixi_couple", from.general)
+      end
+    end
+  end
+}
+Fk:addSkill(qixi_jieban)
+
+Fk:loadTranslationTable{
+  ['qixi_jieban&'] = '结伴',
+  [':qixi_jieban&'] = '出牌阶段限一次，若你没有伴侣，你可以将一张' ..
+    '【桃】或者防具牌交给一名未结伴的异性角色并将其设为追求目标；' ..
+    '然后若其的追求目标是你，双方移除追求目标并结为伴侣。' ..
+    '<br/>伴侣确定后就无法更改，即使死亡也无法将二人分开。',
+  ["#qixi_jieban-promot"] = "结伴：将一张【桃】或者防具牌交给一名未结伴的异性角色，追求该角色",
+}
 
 local qixi_get_logic = function()
   ----@class qixi_logic : GameLogic
@@ -493,6 +568,7 @@ local qixi_get_logic = function()
     room:askForChooseKingdom(nonlord)
 
     room:setBanner("@[:]mode_desc", "qixi_short_desc")
+    room:setBanner("@[:]mode_skill_desc", "qixi_skill_desc")
   end
 
   function qixi_logic:attachSkillToPlayers()
@@ -500,66 +576,13 @@ local qixi_get_logic = function()
     local room = self.room
     room:setTag("SkipNormalDeathProcess", true)
     for _, p in ipairs(room.players) do
-      room:handleAddLoseSkills(p, 'qixi_jieban')
+      room:handleAddLoseSkills(p, 'qixi_jieban&')
       attachRandomSkill(p)
     end
   end
 
   return qixi_logic
 end
-
-local qixi_jieban = fk.CreateActiveSkill{
-  name = "qixi_jieban",
-  anim_type = "support",
-  can_use = function (self, player, card)
-    if player:usedSkillTimes(self.name, Player.HistoryPhase) > 0 then return false end
-    if player:getMark("qixi_couple") ~= 0 then return false end
-    --[[
-    local pid = player:getMark("qixi_pay_court")
-    local p = Fk:currentRoom():getPlayerById(pid)
-    return not p or p.dead or p:getMark("qixi_couple") ~= 0
-    --]]
-    return true
-  end,
-  card_num = 1,
-  target_num = 1,
-  prompt = "#qixi_jieban-promot",
-  card_filter = function(self, to_select, selected)
-    if #selected ~= 0 then return end
-    local c = Fk:getCardById(to_select)
-    return c.trueName == 'peach' or c.sub_type == Card.SubtypeArmor
-  end,
-  target_filter = function(self, to_select, selected, cards)
-    return #selected == 0 and canPayCourtTo(Self, Fk:currentRoom():getPlayerById(to_select)) and #cards == 1
-  end,
-  on_use = function (self, room, effect)
-    local from = room:getPlayerById(effect.from)
-    local to = room:getPlayerById(effect.tos[1])
-    room:obtainCard(to, effect.cards[1], true, fk.ReasonGive)
-
-    room:setPlayerMark(from, "qixi_pay_court", to.id)
-    room:setPlayerMark(from, "@qixi_pay_court", to.general)
-    if to:getMark('qixi_pay_court') == from.id then
-      room:setPlayerMark(from, "qixi_pay_court", 0)
-      room:setPlayerMark(from, "@qixi_pay_court", 0)
-      room:setPlayerMark(to, "qixi_pay_court", 0)
-      room:setPlayerMark(to, "@qixi_pay_court", 0)
-
-      room:setPlayerMark(from, "qixi_couple", to.id)
-      room:setPlayerMark(to, "qixi_couple", from.id)
-      addCoupleSkill(from, to)
-      local couple = isCoupleGeneral(from, to)
-      if couple then
-        room:setPlayerMark(from, to.gender == General.Female and "@qixi_couple_pink" or "@qixi_couple_blue", to.general)
-        room:setPlayerMark(to, from.gender == General.Female and "@qixi_couple_pink" or "@qixi_couple_blue", from.general)
-      else
-        room:setPlayerMark(from, "@qixi_couple", to.general)
-        room:setPlayerMark(to, "@qixi_couple", from.general)
-      end
-    end
-  end
-}
-Fk:addSkill(qixi_jieban)
 
 ---@param killer ServerPlayer
 ---@param victim ServerPlayer
@@ -676,23 +699,32 @@ local qixi_mode = fk.CreateGameMode{
 Fk:loadTranslationTable{
   ['qixi_mode'] = '七夕模式',
   [':qixi_mode'] = qixi_desc,
-  ['qixi_jieban'] = '结伴',
-  [':qixi_jieban'] = '出牌阶段限一次，若你没有伴侣，你可以将一张' ..
-    '【桃】或者防具牌交给一名未结伴的异性角色并将其设为追求目标；' ..
-    '然后若其的追求目标是你，双方移除追求目标并结为伴侣。' ..
-    '<br/>伴侣确定后就无法更改，即使死亡也无法将二人分开。',
-  ["#qixi_jieban-promot"] = "结伴：将一张【桃】或者防具牌交给一名未结伴的异性角色，追求该角色",
+
   ['@qixi_pay_court'] = '追求',
   ['@qixi_couple'] = '伴侣',
   ['@qixi_couple_blue'] = '<font color="#87CEFA">伴侣</font>',
   ['@qixi_couple_pink'] = '<font color="#FFB6C1">伴侣</font>',
+
   ["@[:]mode_desc"] = "模式简介",
   ["qixi_short_desc"] = "七夕",
   [":qixi_short_desc"] = "◆获胜条件为击杀除了自己和伴侣之外的所有其他角色。"
+  .."<br>◆所有角色拥有模式专属技能“结伴”，以及一个随机技能"
   .."<br>◆发动技能“结伴”追求异性，互相发动“结伴”后即结为伴侣。"
   .."<br>◆当无伴侣的角色造成致命伤害时，若场上没有可以被追求的角色，则伤害+1，否则防止伤害。"
   .."<br>◆击杀伴侣的角色弃置所有牌并失去一点体力。"
   .."<br>◆击杀非伴侣角色，自己和伴侣各摸牌。",
+
+  ["@[:]mode_skill_desc"] = "技能简介",
+  ["qixi_skill_desc"] = "伴侣技",
+  [":qixi_skill_desc"] = [[
+  结伴后，双方失去模式赋予的技能和“结伴”，然后根据男方的势力获得如下技能：
+  <br>   魏：【舍身》当伴侣不以此法受到伤害时，你可以将伤害转移给自己。
+  <br>   蜀：【共斗》每回合限一次，当伴侣使用的非转化【杀】结算完成后，你可以视为对相同的目标使用一张【杀】。
+  <br>   吴：【连枝》使用装备牌后可以令伴侣摸一张牌。
+  <br>   群：【泣别》伴侣在求桃结束即将死亡时，你可以将所有体力值和武将牌上的技能交给伴侣（伴侣至少会回复至1点体力），然后阵亡。
+  <br>   其他：不会得到伴侣技，但也不失去模式赋予的那个技能。
+]],
+
   ["#QixiModeNegative"] = "由于 %from 没有伴侣，防止其造成致命伤害",
 }
 
