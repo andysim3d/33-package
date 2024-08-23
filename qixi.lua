@@ -611,6 +611,7 @@ end
 local qixi_rule = fk.CreateTriggerSkill{
   name = "#qixi_rule",
   priority = 0.001,
+  mute = true,
   events = {
     fk.GameOverJudge, fk.BuryVictim, fk.DamageCaused,
     fk.DrawNCards, fk.EventPhaseStart,
@@ -620,13 +621,14 @@ local qixi_rule = fk.CreateTriggerSkill{
     if event == fk.DamageCaused then
       return player:getMark('qixi_couple') == 0 and data.damage >= (data.to.hp + data.to.shield)
     elseif event == fk.DrawNCards then
-      return player:getMark('@qixi_couple_pink') ~= 0
+      return player:getMark("@qixi_couple_pink") ~= 0
     elseif event == fk.EventPhaseStart then
-      return player.phase == Player.Finish and player:getMark('@qixi_couple_blue') ~= 0
+      return player.phase == Player.Finish and player:getMark("@qixi_couple_blue") ~= 0
     end
     return true
   end,
-  on_trigger = function(self, event, target, player, data)
+  on_cost = Util.TrueFunc,
+  on_use = function(self, event, target, player, data)
     local room = player.room
     if event == fk.GameOverJudge then
       room:setTag("SkipGameRule", true)
@@ -661,8 +663,12 @@ local qixi_rule = fk.CreateTriggerSkill{
         data.damage = data.damage + 1
       end
     elseif event == fk.DrawNCards then
+      player:broadcastSkillInvoke("yingzi")
+      room:notifySkillInvoked(player, "yingzi", "drawcard")
       data.n = data.n + 1
     elseif event == fk.EventPhaseStart then
+      player:broadcastSkillInvoke("biyue")
+      room:notifySkillInvoked(player, "biyue", "drawcard")
       player:drawCards(1, self.name)
     end
   end,
@@ -694,16 +700,43 @@ local qixi_mode = fk.CreateGameMode{
       end
     end
   end,
+  surrender_func = function(self, playedTime)
+    local room = Fk:currentRoom()
+    local canSurrender = true
+    local coupleId = Self:getMark("qixi_couple")
+    if coupleId ~= 0 then
+      local couple = room:getPlayerById(coupleId)
+      if couple and (couple.rest > 0 or not couple.dead) then
+        canSurrender = false
+      end
+    end
+    if canSurrender then
+      ---@type table<ClientPlayer>
+      local others = table.filter(Fk:currentRoom().players, function(p)
+        return (p.rest > 0 or not p.dead) and p ~= Self and p.id ~= coupleId
+      end)
+      if #others > 2 then
+        canSurrender = false
+      elseif #others == 2 then
+        if others[1]:getMark("qixi_couple") ~= others[2].id and others[1]:getMark("qixi_couple") ~= others[2].id then
+          canSurrender = false
+        end
+      end
+    end
+    return { { text = "qixi_surrender", passed = canSurrender } }
+  end,
 }
 
 Fk:loadTranslationTable{
   ['qixi_mode'] = '七夕模式',
   [':qixi_mode'] = qixi_desc,
 
+  ["#qixi_rule"] = "七夕规则",
   ['@qixi_pay_court'] = '追求',
   ['@qixi_couple'] = '伴侣',
   ['@qixi_couple_blue'] = '<font color="#87CEFA">伴侣</font>',
   ['@qixi_couple_pink'] = '<font color="#FFB6C1">伴侣</font>',
+  ["qixi_surrender"] = "未结伴或伴侣已死亡，且仅剩一名其他角色或一对其他伴侣",
 
   ["@[:]mode_desc"] = "模式简介",
   ["qixi_short_desc"] = "七夕",
@@ -723,7 +756,9 @@ Fk:loadTranslationTable{
   <br>   吴：【连枝》使用装备牌后可以令伴侣摸一张牌。
   <br>   群：【泣别》伴侣在求桃结束即将死亡时，你可以将所有体力值和武将牌上的技能交给伴侣（伴侣至少会回复至1点体力），然后阵亡。
   <br>   其他：不会得到伴侣技，但也不失去模式赋予的那个技能。
-]],
+  <br>
+  <br>特别的，当原配夫妻（例如周瑜&小乔）结伴时，男方获得“英姿”效果，女方获得“闭月”效果（不显示，无法被无效，锁定发动，标的）
+  ]],
 
   ["#QixiModeNegative"] = "由于 %from 没有伴侣，防止其造成致命伤害",
 }
