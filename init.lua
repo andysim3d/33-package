@@ -16,6 +16,7 @@ extension:addGameMode(require "packages/gamemode/vanished_dragon")
 extension:addGameMode(require "packages/gamemode/qixi")
 extension:addGameMode(require "packages/gamemode/zombie_mode")
 extension:addGameMode(require "packages/gamemode/kangqin")
+extension:addGameMode(require "packages/gamemode/jiange")
 
 local chaos_mode_cards = require "packages/gamemode/chaos_mode_cards"
 local espionage_cards = require "packages/gamemode/espionage_cards"
@@ -23,6 +24,7 @@ local vanished_dragon_cards = require "packages/gamemode/vanished_dragon_cards"
 local variation_cards = require "packages/gamemode/variation_cards"
 
 local gamemode_generals = require "packages/gamemode/gamemode_generals"
+local jiange_generals = require "packages/gamemode/jiange_generals"
 
 Fk:loadTranslationTable{ ["gamemode"] = "游戏模式" }
 Fk:loadTranslationTable(require 'packages/gamemode/i18n/en_US', 'en_US')
@@ -36,4 +38,5 @@ return {
   variation_cards,
 
   gamemode_generals,
+  jiange_generals,
 }
