@@ -256,12 +256,12 @@ local m_1v3_rule = fk.CreateTriggerSkill{
               p:drawCards(1)
             end
           else
-            local choices = {"#m_1v3_draw2", "Cancel"}
+            local choices = {"draw2", "Cancel"}
             if p:isWounded() then
-              table.insert(choices, 2, "#m_1v3_heal")
+              table.insert(choices, 2, "recover")
             end
             local choice = room:askForChoice(p, choices, self.name)
-            if choice == "#m_1v3_draw2" then p:drawCards(2, self.name)
+            if choice == "draw2" then p:drawCards(2, self.name)
             else room:recover{ who = p, num = 1, skillName = self.name } end
           end
         end
@@ -342,8 +342,6 @@ Fk:loadTranslationTable{
   ["m_1v3_mode"] = "虎牢关1v3",
   [":m_1v3_mode"] = desc_1v3,
   ["#m_1v3_death_draw"] = "是否摸一张牌？",
-  ["#m_1v3_draw2"] = "摸两张牌",
-  ["#m_1v3_heal"] = "回复1点体力",
   ["#m_1v3_rule"] = "虎牢关规则",
   ["m_1v3_convert"] = "暴怒",
   -- ["time limitation: 2 min"] = "游戏时长达到2分钟",

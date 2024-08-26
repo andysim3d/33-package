@@ -560,6 +560,7 @@ Fk:loadTranslationTable{
 
 local elephantSkill = fk.CreateDistanceSkill{
   name = "#elephant_skill",
+  attached_equip = "elephant",
   correct_func = function(self, from, to)
     if to:hasSkill(self) then
       return 1
@@ -581,6 +582,7 @@ Fk:loadTranslationTable{
 
 local inferiorHorseSkill = fk.CreateDistanceSkill{
   name = "#inferior_horse_skill",
+  attached_equip = "inferior_horse",
   frequency = Skill.Compulsory,
   correct_func = function(self, from, to)
     if from:hasSkill(self) then

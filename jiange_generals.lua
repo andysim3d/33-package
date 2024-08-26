@@ -402,6 +402,7 @@ local jiange__tianyu = fk.CreateTriggerSkill{
   end,
   on_use = function(self, event, target, player, data)
     local room = player.room
+    player:broadcastSkillInvoke("lianhuan")
     local targets = table.filter(U.GetEnemies(room, player), function (p)
       return not p.chained
     end)
@@ -676,7 +677,7 @@ local jiange__hupo = fk.CreateFilterSkill{
   anim_type = "offensive",
   frequency = Skill.Compulsory,
   card_filter = function(self, card, player)
-    return player:hasSkill(self) and card.type == Card.TypeTrick
+    return player:hasSkill(self) and card.type == Card.TypeTrick and table.contains(player:getCardIds("h"), card.id)
   end,
   view_as = function(self, to_select)
     return Fk:cloneCard("slash", to_select.suit, to_select.number)
@@ -951,6 +952,7 @@ local jiange__leili = fk.CreateTriggerSkill{
   end,
   on_use = function(self, event, target, player, data)
     local room = player.room
+    player:broadcastSkillInvoke("ol_ex__shensu")
     room:damage({
       from = player,
       to = room:getPlayerById(self.cost_data),
@@ -983,6 +985,7 @@ local jiange__fengxing = fk.CreateTriggerSkill{
     end
   end,
   on_use = function(self, event, target, player, data)
+    player:broadcastSkillInvoke("shensu")
     player.room:useCard(self.cost_data)
   end,
 }
