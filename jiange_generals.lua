@@ -9,7 +9,7 @@ Fk:loadTranslationTable{
   ["jiange"] = "剑阁",
 }
 
-local liubei = General(extension, "jiange__liubei", "shu", 5)
+local liubei = General(extension, "jiange__liubei", "shu", 6)
 liubei.hidden = true
 liubei.jiange_hero = true
 local jiange__jizhen = fk.CreateTriggerSkill{
@@ -96,7 +96,7 @@ Fk:loadTranslationTable{
   ["#jiange__lingfeng-choose"] = "灵锋：你可以令一名敌方角色失去1点体力",
 }
 
-local zhugeliang = General(extension, "jiange__zhugeliang", "shu", 4)
+local zhugeliang = General(extension, "jiange__zhugeliang", "shu", 5)
 zhugeliang.hidden = true
 zhugeliang.jiange_hero = true
 local jiange__biantian = fk.CreateTriggerSkill{
@@ -193,7 +193,7 @@ Fk:loadTranslationTable{
   ["#jiange__biantian_delay"] = "变天",
 }
 
-local huangyueying = General(extension, "jiange__huangyueying", "shu", 4, 4, General.Female)
+local huangyueying = General(extension, "jiange__huangyueying", "shu", 5, 5, General.Female)
 huangyueying.hidden = true
 huangyueying.jiange_hero = true
 local jiange__gongshen = fk.CreateTriggerSkill{
@@ -341,7 +341,7 @@ Fk:loadTranslationTable{
   ["#jiange__zhinang-give"] = "智囊：你可以将其中的非基本牌交给一名友方角色",
 }
 
-local pangtong = General(extension, "jiange__pangtong", "shu", 4)
+local pangtong = General(extension, "jiange__pangtong", "shu", 5)
 pangtong.hidden = true
 pangtong.jiange_hero = true
 local jiange__yuhuo = fk.CreateTriggerSkill{
@@ -432,7 +432,7 @@ Fk:loadTranslationTable{
   ["#jiange__tianyu-invoke"] = "天狱：是否横置所有敌方角色？",
 }
 
-local guanyu = General(extension, "jiange__guanyu", "shu", 5)
+local guanyu = General(extension, "jiange__guanyu", "shu", 6)
 guanyu.hidden = true
 guanyu.jiange_hero = true
 local jiange__xiaorui = fk.CreateTriggerSkill{
@@ -521,7 +521,7 @@ Fk:loadTranslationTable{
   [":jiange__tianjiang"] = "锁定技，当友方角色每回合首次使用【杀】造成伤害后，其摸一张牌。",
 }
 
-local zhaoyun = General(extension, "jiange__zhaoyun", "shu", 5)
+local zhaoyun = General(extension, "jiange__zhaoyun", "shu", 6)
 zhaoyun.hidden = true
 zhaoyun.jiange_hero = true
 local jiange__fengjian = fk.CreateTriggerSkill{
@@ -646,7 +646,7 @@ Fk:loadTranslationTable{
   ["#jiange__longwei-invoke"] = "龙威：是否减1点体力上限，令 %dest 回复1点体力？",
 }
 
-local zhangfei = General(extension, "jiange__zhangfei", "shu", 4)
+local zhangfei = General(extension, "jiange__zhangfei", "shu", 5)
 zhangfei.hidden = true
 zhangfei.jiange_hero = true
 local jiange__mengwu = fk.CreateTriggerSkill{
@@ -1519,15 +1519,13 @@ local jiange__didong = fk.CreateTriggerSkill{
       #U.GetEnemies(player.room, player) > 0
   end,
   on_cost = function(self, event, target, player, data)
-    local to = player.room:askForChoosePlayers(player, table.map(U.GetEnemies(player.room, player), Util.IdMapper), 1, 1,
-      "#jiange__didong-choose", self.name, true)
-    if #to > 0 then
-      self.cost_data = to[1]
-      return true
-    end
+    return player.room:askForSkillInvoke(player, self.name, nil, "#jiange__didong-invoke")
   end,
   on_use = function(self, event, target, player, data)
-    player.room:getPlayerById(self.cost_data):turnOver()
+    local room = player.room
+    local to = table.random(U.GetEnemies(room, player))
+    room:doIndicate(player.id, {to.id})
+    to:turnOver()
   end,
 }
 bihan:addSkill(jiange__didong)
@@ -1537,8 +1535,8 @@ Fk:loadTranslationTable{
   ["#jiange__bihan"] = "缚地狴犴",
 
   ["jiange__didong"] = "地动",
-  [":jiange__didong"] = "结束阶段，你可以令一名敌方角色翻面。",
-  ["#jiange__didong-choose"] = "地动：你可以令一名敌方角色翻面",
+  [":jiange__didong"] = "结束阶段，你可以令随机一名敌方角色翻面。",
+  ["#jiange__didong-invoke"] = "地动：是否令随机一名敌方角色翻面？",
 }
 
 local suanni = General(extension, "jiange__suanni", "wei", 4)
@@ -1558,6 +1556,7 @@ local jiange__lianyu = fk.CreateTriggerSkill{
   on_use = function(self, event, target, player, data)
     local room = player.room
     room:doIndicate(player.id, table.map(U.GetEnemies(room, player), Util.IdMapper))
+    player:turnOver()
     for _, p in ipairs(room:getOtherPlayers(player)) do
       if table.contains(U.GetEnemies(room, player), p) and not p.dead then
         room:damage({
@@ -1578,8 +1577,8 @@ Fk:loadTranslationTable{
   ["#jiange__suanni"] = "食火狻猊",
 
   ["jiange__lianyu"] = "炼狱",
-  [":jiange__lianyu"] = "结束阶段，你可以对所有敌方角色各造成1点火焰伤害。",
-  ["#jiange__lianyu-invoke"] = "炼狱：是否对所有敌方角色各造成1点火焰伤害？",
+  [":jiange__lianyu"] = "结束阶段，你可以翻面，对所有敌方角色各造成1点火焰伤害。",
+  ["#jiange__lianyu-invoke"] = "炼狱：是否翻面并对所有敌方角色各造成1点火焰伤害？",
 }
 
 local chiwen = General(extension, "jiange__chiwen", "wei", 6)

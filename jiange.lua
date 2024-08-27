@@ -16,9 +16,8 @@ local jiange_desc = [[
 
   游戏由8名玩家进行，分为蜀、魏两阵营，双方阵营各有两名普通武将、一名英魂武将、一名攻城器械。
 
-  系统由以下两种座次顺序中随机选择一种：
+  行动顺序为：
   
-  - 蜀势力武将-蜀势力攻城器械-魏势力武将-魏势力英魂-魏势力武将-魏势力攻城器械-蜀势力武将-蜀势力英魂
   - 魏势力武将-魏势力攻城器械-蜀势力武将-蜀势力英魂-蜀势力武将-蜀势力攻城器械-蜀势力武将-魏势力英魂
   
   胜利条件为消灭所有敌方阵营角色。
@@ -126,14 +125,14 @@ local jiange_getLogic = function()
   function jiange_logic:initialize(room)
     GameLogic.initialize(self, room)
     self.role_table = {
-      {"shu", "shu", "wei", "wei", "wei", "wei", "shu", "shu"},
+      --{"shu", "shu", "wei", "wei", "wei", "wei", "shu", "shu"},
       {"wei", "wei", "shu", "shu", "shu", "shu", "wei", "wei"},
     }
   end
 
   function jiange_logic:assignRoles()
     local room = self.room
-    local roles = self.role_table[math.random(1, 2)]
+    local roles = self.role_table[math.random(1, 1)]
     table.shuffle(room.players)
     for i = 1, #room.players do
       local p = room.players[i]
@@ -147,6 +146,7 @@ local jiange_getLogic = function()
   function jiange_logic:chooseGenerals()
     local room = self.room
     math.randomseed(tonumber(tostring(os.time()):reverse():sub(1, 6)))
+    room:setBanner("@[:]mode_desc", "jiange_short_desc")
     room:setBanner("@[:]jiange_event", "jiange_event"..math.random(1, 19))
 
     local heroes = {
@@ -180,9 +180,11 @@ local jiange_getLogic = function()
       --变势力类
       "js__xuyou", "js__lvbu", "js__jiangwei", "mou__sunshangxiang", "ol__mengda", "qyt__xiahoushi", "tw__xiahouba",
       --变身类
-      "zhaoxiang", "os__zhaoxiang", "ol__baosanniang", "qyt__jiangwei", "ty__baosanniang",
+      "zhaoxiang", "ol__baosanniang", "qyt__jiangwei", "ty__baosanniang",
       --身份类
       "ol__dongzhao", "huanghao",
+      --imba
+      "zhouxuan", "mou__caopi", "mobile__caomao", "js__guozhao", "ofl__zhonghui",
     }
     local generals = {
       ["wei"] = {},
@@ -428,6 +430,12 @@ Fk:loadTranslationTable{
   [":jiange_mode"] = jiange_desc,
   ["jiange_surrender"] = "本阵营仅剩你存活",
   ["@[:]jiange_event"] = "事件",
+
+  ["jiange_short_desc"] = "守卫剑阁",
+  [":jiange_short_desc"] = "◆本模式为魏蜀双势力对抗，获胜条件为消灭所有敌方势力角色。"
+  .."<br>◆行动顺序为：魏势力武将-魏势力攻城器械-蜀势力武将-蜀势力英魂-蜀势力武将-蜀势力攻城器械-蜀势力武将-魏势力英魂"
+  .."<br>◆游戏开始前会随机发生一个事件，所有角色根据势力获取对应事件的技能。"
+  .."<br>◆杀死角色没有奖惩！",
 
   ["jiange_event1"] = "百步九折",
   [":jiange_event1"] = "蜀势力角色获得〖志继〗，魏势力角色获得〖魏业〗<br>"..
