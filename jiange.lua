@@ -233,7 +233,7 @@ local jiange_getLogic = function()
         arg = machines[p.role]
       end
       if #arg > 0 then
-        p.request_data = json.encode({ arg, 1 })
+        p.request_data = json.encode({ arg, 1, true })
         p.default_reply = arg[1]
       else
         room:sendLog{
