@@ -7,8 +7,6 @@ local qixi_desc = [==[
 
 通过随机方式决出一号位。游戏不分发身份，而是直接进入选将环节。
 
-由于女性武将数量稍有不足，本模式最多只可启用8个选将框，且无法保证选将框武将数量。
-
 系统选择一半的玩家只抽得到男性武将，另外一半玩家只抽得到女性武将。
 如果有奇数个玩家的话那么多出的一名玩家选将框性别随机。
 
@@ -479,68 +477,57 @@ local qixi_get_logic = function()
 
   function qixi_logic:chooseGenerals()
     local room = self.room --- @type Room
+    local nonlord = room.players
 
-    local all_generals = Fk:getAllGenerals()
-
-    local generalNum = math.min(room.settings.generalNum, 8)
-    local minGeneralNum = (#room.players * generalNum) // 2
-    local male_generals = {}
-    local female_generals = {}
-    table.shuffle(all_generals)
-    for _, g in ipairs(all_generals) do
-      local t
-      if g.gender == General.Female then
-        t = female_generals
+    local males, females = {}, {}
+    for _, p in ipairs(nonlord) do
+      if p:getMark("@!qixi_male") > 0 then
+        table.insert(males, p)
       else
-        t = male_generals
+        table.insert(females, p)
       end
-
-      if #t >= minGeneralNum then
-        if #female_generals >= minGeneralNum and #male_generals >= minGeneralNum then
-          break
-        end
-        goto CONT  -- continue
-      end
-
-      if (not g.hidden and not g.total_hidden) and
-        not table.find(t, function(_g)
-        return _g.trueName == g.trueName
-      end) then
-        table.insert(t, g)
-      end
-
-      ::CONT::
     end
 
-    if #male_generals < minGeneralNum or #female_generals < minGeneralNum then
-      local half = math.ceil(#room.players / 2)
-      local n = math.min(#male_generals, #female_generals)
-      generalNum = n // half
+    local male_generals,female_generals = {}, {}
+
+    for _, gname in ipairs(room.general_pile) do
+      local general = Fk.generals[gname]
+      if general.gender == General.Male then
+        table.insert(male_generals, gname)
+      elseif general.gender == General.Female then
+        table.insert(female_generals, gname)
+      end
+      -- no Bigender & Agender
+    end
+    local generalNum = math.min(room.settings.generalNum, #male_generals // #males, #female_generals // #females)
+    if generalNum < 3 then
+      room:sendLog{ type = "#NoGeneralDraw", toast = true }
+      room:gameOver("")
     end
 
-    local n = 1
+    local n = room.settings.enableDeputy and 2 or 1
     local lord = room:getLord()
     room.current = lord
     lord.role = "hidden"
 
-    local nonlord = room.players
     for _, p in ipairs(nonlord) do
       local arg = {}
-      local t
-      if p:getMark("@!qixi_female") > 0 then
-        t = female_generals
-      else
-        t = male_generals
-      end
+      local t = (p:getMark("@!qixi_female") > 0) and female_generals or male_generals
       for i = 1, generalNum do
-        table.insert(arg, table.remove(t).name)
+        table.insert(arg, table.remove(t))
       end
       p.request_data = json.encode({ arg, n })
       p.default_reply = table.random(arg, n)
     end
 
+    for _, p in ipairs(nonlord) do
+      room:setPlayerMark(p, "@seat", "seat#"..p.seat)
+    end
     room:notifyMoveFocus(nonlord, "AskForGeneral")
     room:doBroadcastRequest("AskForGeneral", nonlord)
+    for _, p in ipairs(nonlord) do
+      room:setPlayerMark(p, "@seat", 0)
+    end
 
     local selected = {}
     for _, p in ipairs(nonlord) do
