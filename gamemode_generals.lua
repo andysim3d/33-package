@@ -123,9 +123,15 @@ local hidden_skill = fk.CreateTriggerSkill{
       room:broadcastProperty(player, "deputyGeneral")
       room:askForChooseKingdom({player})
       room:broadcastProperty(player, "kingdom")
-      
-      player.maxHp = player:getGeneralMaxHp()
-      player.hp = deputy and math.floor((deputy.hp + general.hp) / 2) or general.hp
+
+      if player:getMark("__hidden_record") ~= 0 then
+        player.maxHp = player:getMark("__hidden_record").maxHp
+        player.hp = player:getMark("__hidden_record").hp
+        room:setPlayerMark(player, "__hidden_record", 0)
+      else
+        player.maxHp = player:getGeneralMaxHp()
+        player.hp = deputy and math.floor((deputy.hp + general.hp) / 2) or general.hp
+      end
       player.shield = math.min(general.shield + (deputy and deputy.shield or 0), 5)
       local changer = Fk.game_modes[room.settings.gameMode]:getAdjustedProperty(player)
       if changer then
@@ -162,7 +168,10 @@ local hidden_skill = fk.CreateTriggerSkill{
 }
 hiddenone:addSkill(hidden_skill)
 Fk:loadTranslationTable{
-  ["hiddenone"] = "隐匿将",
+  ["hiddenone"] = "隐匿者",
+  ["#hiddenone"] = "隐介藏形",
+  ["illustrator:hiddenone"] = "佚名",  --九鼎的隐匿牌上真就写着illustration：佚名
+
   ["hidden_skill&"] = "隐匿",
   [":hidden_skill&"] = "若你为隐匿将，防止你改变体力上限。当你扣减体力后，或你回合开始时，你解除隐匿状态。",
 }
