@@ -127,16 +127,19 @@ local hidden_skill = fk.CreateTriggerSkill{
       if player:getMark("__hidden_record") ~= 0 then
         player.maxHp = player:getMark("__hidden_record").maxHp
         player.hp = player:getMark("__hidden_record").hp
-        room:setPlayerMark(player, "__hidden_record", 0)
       else
         player.maxHp = player:getGeneralMaxHp()
         player.hp = deputy and math.floor((deputy.hp + general.hp) / 2) or general.hp
       end
       player.shield = math.min(general.shield + (deputy and deputy.shield or 0), 5)
-      local changer = Fk.game_modes[room.settings.gameMode]:getAdjustedProperty(player)
-      if changer then
-        for key, value in pairs(changer) do
-          player[key] = value
+      if player:getMark("__hidden_record") ~= 0 then
+        room:setPlayerMark(player, "__hidden_record", 0)
+      else
+        local changer = Fk.game_modes[room.settings.gameMode]:getAdjustedProperty(player)
+        if changer then
+          for key, value in pairs(changer) do
+            player[key] = value
+          end
         end
       end
       room:broadcastProperty(player, "maxHp")
@@ -230,6 +233,9 @@ v33__zhugejin:addSkill(v33__hongyuan)
 v33__zhugejin:addSkill("mingzhe")
 Fk:loadTranslationTable{
   ["v33__zhugejin"] = "诸葛瑾",
+  ["#v33__zhugejin"] = "联盟的维系者",
+  ["illustrator:v33__zhugejin"] = "LiuHeng",
+
   ["v33__huanshi"] = "缓释",
   [":v33__huanshi"] = "当己方角色的判定牌生效前，你可以打出一张牌代替之。",
   ["v33__hongyuan"] = "弘援",
@@ -239,12 +245,18 @@ Fk:loadTranslationTable{
 
 Fk:loadTranslationTable{
   ["v33__wenpin"] = "文聘",
+  ["#v33__wenpin"] = "坚城宿将",
+  ["illustrator:v33__wenpin"] = "木美人",
+
   ["v33__zhenwei"] = "镇卫",
   [":v33__zhenwei"] = "锁定技，对方角色计算与己方角色的距离+1。",
 }
 
 Fk:loadTranslationTable{
   ["v33__huangquan"] = "黄权",
+  ["#v33__huangquan"] = "道绝殊途",
+  ["illustrator:v33__huangquan"] = "兴游",
+
   ["v33__choujin"] = "筹进",
   [":v33__choujin"] = "锁定技，分发起始手牌前，你指定一名其他角色。当己方角色对该角色造成伤害后，该己方角色摸一张牌。",
   ["v33__zhongjian"] = "忠谏",
@@ -266,6 +278,9 @@ Fk:loadTranslationTable{
 
 Fk:loadTranslationTable{
   ["v33__xusheng"] = "徐盛",
+  ["#v33__xusheng"] = "江东的铁壁",
+  ["illustrator:v33__xusheng"] = "天信",
+
   ["v33__yicheng"] = "疑城",
   [":v33__yicheng"] = "当己方角色成为敌方角色使用【杀】的目标后，你可以令其摸一张牌，然后其弃置一张手牌；若弃置的是装备牌，则改为其使用之。",
 }
@@ -344,6 +359,9 @@ v33__zhanshen:addRelatedSkill(v33__zhanshen_trigger)
 v33__lvbu:addSkill(v33__zhanshen)
 Fk:loadTranslationTable{
   ["v33__lvbu"] = "吕布",
+  ["#v33__lvbu"] = "武的化身",
+  ["illustrator:v33__lvbu"] = "第七个桔子",
+
   ["v33__zhanshen"] = "战神",
   [":v33__zhanshen"] = "锁定技，准备阶段，你选择一项未获得过的效果，获得此效果直到本局游戏结束：<br>"..
   "1.摸牌阶段，你多摸一张牌；<br>2.你使用【杀】造成伤害+1；<br>3.你使用【杀】可以额外选择一个目标。",
@@ -399,6 +417,9 @@ v11__niujin:addSkill(v11__cuorui)
 v11__niujin:addSkill(v11__liewei)
 Fk:loadTranslationTable{
   ["v11__niujin"] = "牛金",
+  ["#v11__niujin"] = "独进的兵胆",
+  ["illustrator:v11__niujin"] = "青骑士",
+
   ["v11__cuorui"] = "挫锐",
   [":v11__cuorui"] = "锁定技，当你登场时，你摸X-2张牌（X为你的备用武将数）；你跳过登场后的第一个判定阶段。",
   ["v11__liewei"] = "裂围",
@@ -644,6 +665,10 @@ v22__kuiji:addRelatedSkill(v22__kuiji_trigger)
 v22__leitong:addSkill(v22__kuiji)
 Fk:loadTranslationTable{
   ["v22__leitong"] = "雷铜",
+  ["#v22__leitong"] = "石铠之鼋",
+  ["designer:v22__leitong"] = "梦魇狂朝",
+  ["illustrator:v22__leitong"] = "M云涯",
+
   ["v22__kuiji"] = "溃击",
   [":v22__kuiji"] = "出牌阶段限一次，你可以将一张黑色基本牌当作【兵粮寸断】置于你的判定区，然后摸一张牌。若如此做，你可以对体力值最多的一名敌方角色"..
   "造成2点伤害，其因此进入濒死状态时，体力值最少的一名友方角色回复1点体力。",
