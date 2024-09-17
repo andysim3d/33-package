@@ -451,7 +451,7 @@ local qixi_get_logic = function()
   local qixi_logic = GameLogic:subclass("qixi_logic")
 
   function qixi_logic:assignRoles()
-    local room = self.room
+    local room = self.room ---@type Room
     local n = #room.players
     local half = n // 2
     local t = {}
@@ -697,7 +697,7 @@ local qixi_mode = fk.CreateGameMode{
       end
     end
     if canSurrender then
-      ---@type table<ClientPlayer>
+      ---@type ClientPlayer[]
       local others = table.filter(Fk:currentRoom().players, function(p)
         return (p.rest > 0 or not p.dead) and p ~= Self and p.id ~= coupleId
       end)

@@ -208,7 +208,7 @@ local m_1v1_rule = fk.CreateTriggerSkill{
           until (not last_event.parent)
         end
       end
-      last_event:addExitFunc(function()
+      last_event:addCleaner(function()
         local g = room:askForGeneral(body, generals, 1)
         if type(g) == "table" then g = g[1] end
         rm(generals, g)

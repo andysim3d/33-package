@@ -27,6 +27,7 @@ local v33_cards = require "packages/gamemode/3v3_cards"
 
 local gamemode_generals = require "packages/gamemode/gamemode_generals"
 local jiange_generals = require "packages/gamemode/jiange_generals"
+local m_1v1_generals = require "packages/gamemode/1v1_generals"
 
 Fk:loadTranslationTable{ ["gamemode"] = "游戏模式" }
 Fk:loadTranslationTable(require 'packages/gamemode/i18n/en_US', 'en_US')
@@ -42,4 +43,5 @@ return {
 
   gamemode_generals,
   jiange_generals,
+  m_1v1_generals,
 }
