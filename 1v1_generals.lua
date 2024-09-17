@@ -11,6 +11,215 @@ Fk:loadTranslationTable{
   ["1v1_generals"] = "1v1专属武将",
 }
 
+-- 流放一名角色（其必须流放区小于3且有剩余武将）
+---@param player ServerPlayer @ 操作者
+---@param to ServerPlayer @ 被流放的角色
+---@return string|nil @ 返回被流放的武将名，无法流放返回nil
+local exilePlayer = function(player, to)
+  local room = player.room
+  local exiled_name = to.role == "lord" and "@&firstExiled" or "@&secondExiled"
+  local exiled_generals = room:getBanner(exiled_name) or  {}
+  if #exiled_generals > 2 then return nil end
+  local rest_name = to.role == "lord" and "@&firstGenerals" or "@&secondGenerals"
+  local rest_genrals = room:getBanner(rest_name) or {}
+  if #rest_genrals == 0 then return nil end
+  -- add prompt for general to exile
+  local general = room:askForGeneral(player, rest_genrals, 1, true) ---@type string
+  table.insert(exiled_generals, general)
+  room:setBanner(exiled_name, exiled_generals)
+  table.removeOne(rest_genrals, general)
+  room:setBanner(rest_name, rest_genrals)
+  return general
+end
+
+-- 标将改1v1
+--张辽 许褚 甄姬 夏侯渊 刘备 关羽 马超 黄月英 魏延 姜维 孟获 祝融 孙权 甘宁 吕蒙 大乔 孙尚香 貂蝉 华佗 庞德
+
+local liubei = General(extension, "v11__liubei", "shu", 4)
+
+local renwang = fk.CreateTriggerSkill{
+  name = "v11__renwang",
+  anim_type = "defensive",
+  events = {fk.CardUsing},
+  can_trigger = function(self, event, target, player, data)
+    if player:hasSkill(self) and target ~= player and not target:isNude() and target.phase == Player.Play
+      and table.contains(TargetGroup:getRealTargets(data.tos), player.id)
+      and (data.card.trueName == "slash" or data.card:isCommonTrick()) then
+      return #player.room.logic:getEventsOfScope(GameEvent.UseCard, 1, function(e)
+        local use = e.data[1]
+        return use.from == target.id and use ~= data and (use.card.trueName == "slash" or use.card:isCommonTrick())
+        and table.contains(TargetGroup:getRealTargets(use.tos), player.id)
+      end, Player.HistoryPhase) > 0
+    end
+  end,
+  on_use = function(self, event, target, player, data)
+    local room = player.room
+    local id = room:askForCardChosen(player, target, "he", self.name)
+    room:throwCard(id, self.name, target, player)
+  end,
+}
+liubei:addSkill(renwang)
+
+Fk:loadTranslationTable{
+  ["v11__liubei"] = "刘备",
+  ["#v11__liubei"] = "乱世的枭雄",
+  ["v11__renwang"] = "仁望",
+  [":v11__renwang"] = "当对手于其出牌阶段内对你使用【杀】或普通锦囊牌时，若本阶段你已成为过上述牌的目标，你可以弃置其一张牌。",
+  ["$v11__renwang1"] = "忍无可忍，无需再忍！",
+  ["$v11__renwang2"] = "休怪我无情了！",
+}
+
+local huangyueying = General(extension, "v11__huangyueying", "shu", 3)
+
+local cangji = fk.CreateTriggerSkill{
+  name = "v11__cangji",
+  events = {fk.Death, "fk.Debut"},
+  can_trigger = function(self, event, target, player, data)
+    if target == player then
+      if event == fk.Death then
+        return player:hasSkill(self, false, true) and #player:getCardIds("e") > 0
+      else
+        return player.tag["v11__cangji"] ~= nil
+      end
+    end
+  end,
+  on_cost = function (self, event, target, player, data)
+    return event ~= fk.Death or player.room:askForSkillInvoke(player, self.name)
+  end,
+  on_use = function(self, event, target, player, data)
+    local room = player.room
+    if event == fk.Death then
+      local cards = player:getCardIds("e")
+      player.tag["v11__cangji"] = cards
+      room:moveCardTo(cards, Card.Void, nil, fk.ReasonJustMove, self.name, nil, true, player.id)
+    else
+      local cards = table.simpleClone(player.tag["v11__cangji"])
+      player.tag["v11__cangji"] = nil
+      room:moveCardIntoEquip(player, cards, self.name, false, player)
+    end
+  end,
+}
+
+huangyueying:addSkill("jizhi")
+huangyueying:addSkill(cangji)
+
+Fk:loadTranslationTable{
+  ["v11__huangyueying"] = "黄月英",
+  ["#v11__huangyueying"] = "归隐的杰女",
+  ["v11__cangji"] = "藏机",
+  [":v11__cangji"] = "当你死亡时，你可以将你装备区里的所有牌移出游戏，然后你的下一名武将登场时将这些牌置入你的装备区。",
+}
+
+local huatuo = General(extension, "v11__huatuo", "qun", 3)
+huatuo:addSkill("jijiu")
+
+local v11__puji = fk.CreateActiveSkill{
+  name = "v11__puji",
+  anim_type = "control",
+  card_num = 1,
+  target_num = 0,
+  prompt = "#v11__puji",
+  can_use = function(self, player)
+    return player:usedSkillTimes(self.name, Player.HistoryPhase) == 0 and not player.next:isNude()
+  end,
+  card_filter = function (self, to_select, selected)
+    return #selected == 0 and not Self:prohibitDiscard(Fk:getCardById(to_select))
+  end,
+  on_use = function(self, room, effect)
+    local player = room:getPlayerById(effect.from)
+    local drawers = {}
+    if Fk:getCardById(effect.cards[1]).suit == Card.Spade then
+      table.insert(drawers, player)
+    end
+    room:throwCard(effect.cards, self.name, player, player)
+    local to = player.next
+    if not to:isNude() then
+      local cid = room:askForCardChosen(player, to, "he", self.name)
+      if Fk:getCardById(cid).suit == Card.Spade then
+        table.insert(drawers, to)
+      end
+      room:throwCard(cid, self.name, to, player)
+    end
+    for _, p in ipairs(drawers) do
+      if not p.dead then
+        p:drawCards(1, self.name)
+      end
+    end
+  end,
+}
+huatuo:addSkill(v11__puji)
+
+Fk:loadTranslationTable{
+  ["v11__huatuo"] = "华佗",
+  ["#v11__huatuo"] = "神医",
+  ["v11__puji"] = "普济",
+  [":v11__puji"] = "出牌阶段限一次，若对手有牌，你可以弃置一张牌，然后弃置其一张牌。然后以此法失去♠牌的角色摸一张牌。",
+  ["#v11__puji"] = "普济：你可以弃置一张牌，再弃置对手一张牌。失去♠牌的角色摸一张牌",
+}
+
+local hejin = General(extension, "v11__hejin", "qun", 4)
+
+local mouzhu = fk.CreateActiveSkill{
+  name = "v11__mouzhu",
+  anim_type = "control",
+  card_num = 0,
+  card_filter = Util.FalseFunc,
+  target_num = 0,
+  prompt = "#v11__mouzhu",
+  can_use = function(self, player)
+    return player:usedSkillTimes(self.name, Player.HistoryPhase) == 0
+    and not player.next:isNude()
+  end,
+  on_use = function(self, room, effect)
+    local player = room:getPlayerById(effect.from)
+    local to = player.next
+    local card = room:askForCard(to, 1, 1, false, self.name, false, ".", "#v11__mouzhu1-give:"..player.id)
+    room:obtainCard(player, card, false, fk.ReasonGive, to.id, self.name)
+    if to:getHandcardNum() < player:getHandcardNum() and not to.dead and not player.dead then
+      local choices = table.filter({"slash", "duel"}, function (name)
+        local c = Fk:cloneCard(name)
+        c.skillName = self.name
+        return to:canUseTo(c, player, {bypass_distances = true, bypass_times = true})
+      end)
+      if #choices == 0 then return end
+      local choice = room:askForChoice(to, choices, self.name, "#v11__mouzhu2-use:"..player.id)
+      room:useVirtualCard(choice, nil, to, player, self.name, true)
+    end
+  end,
+}
+hejin:addSkill(mouzhu)
+
+local yanhuo = fk.CreateTriggerSkill{
+  name = "v11__yanhuo",
+  anim_type = "control",
+  events = {fk.Death},
+  can_trigger = function(self, event, target, player, data)
+    return target == player and player:hasSkill(self, false, true) and not player:isNude() and not player.next:isNude()
+  end,
+  on_use = function(self, event, target, player, data)
+    local room = player.room
+    local n = #player:getCardIds("he")
+    for i = 1, n do
+      if player.next:isNude() then break end
+      local card = room:askForCardChosen(player, player.next, "he", self.name)
+      room:throwCard(card, self.name, player.next, player)
+    end
+  end,
+}
+hejin:addSkill(yanhuo)
+
+Fk:loadTranslationTable{
+  ["v11__hejin"] = "何进",
+  ["#v11__hejin"] = "色厉内荏",
+  ["v11__mouzhu"] = "谋诛",
+  [":v11__mouzhu"] = "出牌阶段限一次，你可以令对手交给你一张手牌，然后若其手牌数小于你，其选择视为对你使用【杀】或【决斗】。",
+  ["#v11__mouzhu"] = "谋诛：令对手交给你一张手牌，若其手牌数小于你，其视为对你用【杀】或【决斗】",
+  ["#v11__mouzhu1-give"] = "谋诛：请交给 %src 一张手牌",
+  ["#v11__mouzhu2-use"] = "谋诛：选择视为对 %src 使用的牌",
+  ["v11__yanhuo"] = "延祸",
+  [":v11__yanhuo"] = "当你死亡时，你可以依次弃置对手X张牌（X为你的牌数）。",
+}
+
 local v11__niujin = General(extension, "v11__niujin", "wei", 4)
 
 local v11__cuorui = fk.CreateTriggerSkill{
@@ -68,14 +277,6 @@ Fk:loadTranslationTable{
 }
 
 Fk:loadTranslationTable{
-  ["v11__hejin"] = "何进",
-  ["v11__mouzhu"] = "谋诛",
-  [":v11__mouzhu"] = "出牌阶段限一次，你可以令对手交给你一张手牌，然后若其手牌数小于你，其选择视为对你使用【杀】或【决斗】。",
-  ["v11__yanhuo"] = "延祸",
-  [":v11__yanhuo"] = "当你死亡时，你可以依次弃置对手X张牌（X为你的牌数）。",
-}
-
-Fk:loadTranslationTable{
   ["v11__hansui"] = "韩遂",
   ["v11__xiaoxi"] = "骁袭",
   [":v11__xiaoxi"] = "当你登场时，你可以视为使用一张【杀】。",
@@ -83,41 +284,7 @@ Fk:loadTranslationTable{
   [":v11__niluan"] = "对手的结束阶段，若其体力值大于你，或其本回合对你使用过【杀】，你可以将一张黑色牌当【杀】对其使用。",
 }
 
---张辽 许褚 甄姬 夏侯渊 刘备 关羽 马超 黄月英 魏延 姜维 孟获 祝融 孙权 甘宁 吕蒙 大乔 孙尚香 貂蝉 华佗 庞德
 
-local liubei = General(extension, "v11__liubei", "shu", 4)
-
-local renwang = fk.CreateTriggerSkill{
-  name = "v11__renwang",
-  anim_type = "defensive",
-  events = {fk.CardUsing},
-  can_trigger = function(self, event, target, player, data)
-    if player:hasSkill(self) and target ~= player and not target:isNude() and target.phase == Player.Play
-      and table.contains(TargetGroup:getRealTargets(data.tos), player.id)
-      and (data.card.trueName == "slash" or data.card:isCommonTrick()) then
-      return #player.room.logic:getEventsOfScope(GameEvent.UseCard, 1, function(e)
-        local use = e.data[1]
-        return use.from == target.id and use ~= data and (use.card.trueName == "slash" or use.card:isCommonTrick())
-        and table.contains(TargetGroup:getRealTargets(use.tos), player.id)
-      end, Player.HistoryPhase) > 0
-    end
-  end,
-  on_use = function(self, event, target, player, data)
-    local room = player.room
-    local id = room:askForCardChosen(player, target, "he", self.name)
-    room:throwCard(id, self.name, target, player)
-  end,
-}
-liubei:addSkill(renwang)
-
-Fk:loadTranslationTable{
-  ["v11__liubei"] = "刘备",
-  ["#v11__liubei"] = "乱世的枭雄",
-  ["v11__renwang"] = "仁望",
-  [":v11__renwang"] = "当对手于其出牌阶段内对你使用【杀】或普通锦囊牌时，若本阶段你已成为过上述牌的目标，你可以弃置其一张牌。",
-  ["$v11__renwang1"] = "忍无可忍，无需再忍！",
-  ["$v11__renwang2"] = "休怪我无情了！",
-}
 
 Fk:loadTranslationTable{
   ["v11__xiangchong"] = "向宠",
@@ -154,6 +321,51 @@ local v11__guolie = fk.CreateTriggerSkill{
 }
 v11__sunyi:addSkill(v11__guolie)
 
+local hunbi = fk.CreateTriggerSkill{
+  name = "v11__hunbi",
+  events = {fk.Death, "fk.Debut"},
+  can_trigger = function(self, event, target, player, data)
+    if target == player then
+      if event == fk.Death then
+        if player:hasSkill(self, false, true) then
+          local rest = player.room:getBanner(player.next.role == "lord" and "@&firstExiled" or "@&secondExiled") or {}
+          return #rest < 3
+        end
+      else
+        return player.tag["v11__hunbi"]
+      end
+    end
+  end,
+  on_cost = function (self, event, target, player, data)
+    return event ~= fk.Death or player.room:askForSkillInvoke(player, self.name)
+  end,
+  on_use = function(self, event, target, player, data)
+    local room = player.room
+    if event == fk.Death then
+      player.tag["v11__hunbi"] = true
+    else
+      player.tag["v11__hunbi"] = false
+      local to = player.next
+      local all_choices = {"draw1", "#v11__hunbi_slash", "#v11__hunbi_exile"}
+      local choices = table.simpleClone(all_choices)
+      if not player:canUseTo(Fk:cloneCard("slash"), to, {bypass_distances = true, bypass_times = true}) then
+        table.remove(choices, 2)
+      end
+      local choice = room:askForChoice(player, choices, self.name, "", false, all_choices)
+      if choice == all_choices[1] then
+        player:drawCards(1, self.name)
+      elseif choice == all_choices[2] then
+        room:useVirtualCard("slash", nil, player, to, self.name, true)
+      else
+        for i = 1, 2 do
+          exilePlayer(player, to)
+        end
+      end
+    end
+  end,
+}
+v11__sunyi:addSkill(hunbi)
+
 Fk:loadTranslationTable{
   ["v11__sunyi"] = "孙翊",
   ["v11__guolie"] = "果烈",
@@ -163,6 +375,8 @@ Fk:loadTranslationTable{
 
   ["#v11__guolie-use"] = "果烈：你须使用 %arg",
   ["v11__guolie_vs"] = "果烈",
+  ["#v11__hunbi_slash"] = "视为使用【杀】",
+  ["#v11__hunbi_exile"] = "对对手执行两次流放",
 }
 
 Fk:loadTranslationTable{

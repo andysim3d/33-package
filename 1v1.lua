@@ -23,19 +23,45 @@ local desc_1v1 = [[
 
 ]]
 
--- FIXME: Disable same convert by param or extra data
-local function rm(generals, g)
+-- 从武将池中移除指定武将。若无法移除，则移去第一个武将
+local function removeGeneral(generals, g)
   local gt = Fk.generals[g].trueName
   for i, v in ipairs(generals) do
     if Fk.generals[v].trueName == gt then
-      table.remove(generals, i)
-      return
+      return table.remove(generals, i)
     end
   end
+  return table.remove(generals, 1)
 end
 
 local m_1v1_getLogic = function()
   local m_1v1_logic = GameLogic:subclass("m_1v1_logic")
+
+  function m_1v1_logic:prepareDrawPile()
+    local room = self.room ---@type Room
+    local allCardIds = Fk:getAllCardIds()
+  
+    for i = #allCardIds, 1, -1 do
+      local id = allCardIds[i]
+      local card = Fk:getCardById(id)
+      if card.is_derived then
+        table.removeOne(allCardIds, id)
+        table.insert(room.void, id)
+        room:setCardArea(id, Card.Void, nil)
+      elseif card.name == "dismantlement" then
+        table.insert(room.void, id)
+        room:setCardArea(id, Card.Void, nil)
+        local newCard = room:printCard("v11__dismantlement", card.suit, card.number)
+        allCardIds[i] = newCard.id
+      end
+    end
+  
+    table.shuffle(allCardIds)
+    room.draw_pile = allCardIds
+    for _, id in ipairs(room.draw_pile) do
+      room:setCardArea(id, Card.DrawPile, nil)
+    end
+  end
 
   function m_1v1_logic:chooseGenerals()
     local room = self.room ---@type Room
@@ -50,11 +76,6 @@ local m_1v1_getLogic = function()
 
     local lord_generals = {}
     local nonlord_generals = {}
-    for _, g in ipairs(Fk.packages["gamemode_generals"].generals) do
-      if g.name:startsWith("v11__") then
-        table.insertIfNeed(room.general_pile, g.name)
-      end
-    end
     local all_generals = room:getNGenerals(12)
 
     local function removeSame(t, n)
@@ -101,14 +122,14 @@ local m_1v1_getLogic = function()
     room:doBroadcastRequest("AskForGeneral", room.players)
     for _, p in ipairs(room.players) do
       local tab = p == lord and lord_generals or nonlord_generals
+      local chosen = ""
       if p.general == "" and p.reply_ready then
-        local general = json.decode(p.client_reply)[1]
-        room:setPlayerGeneral(p, general, true, true)
-        rm(tab, general)
+        chosen = json.decode(p.client_reply)[1]
       else
-        room:setPlayerGeneral(p, p.default_reply, true, true)
-        rm(tab, p.default_reply)
+        chosen = p.default_reply
       end
+      room:setPlayerGeneral(p, chosen, true, true)
+      removeGeneral(tab, chosen)
       p.default_reply = ""
     end
 
@@ -194,6 +215,14 @@ local m_1v1_rule = fk.CreateTriggerSkill{
       local generals = room:getBanner(body.role == "lord" and "@&firstGenerals" or "@&secondGenerals")
       body:bury()
       if body.rest > 0 then return end
+      local exiled_name = body.role == "lord" and "@&firstExiled" or "@&secondExiled"
+      local exiled_generals = room:getBanner(exiled_name) or  {}
+      table.insert(exiled_generals, body.general)
+      room:setBanner(exiled_name, exiled_generals)
+      if #generals == 0 then
+        room:gameOver(body.next.role)
+        return
+      end
       local current = room.logic:getCurrentEvent()
       local last_event = nil
       if room.current.dead then
@@ -211,7 +240,8 @@ local m_1v1_rule = fk.CreateTriggerSkill{
       last_event:addCleaner(function()
         local g = room:askForGeneral(body, generals, 1)
         if type(g) == "table" then g = g[1] end
-        rm(generals, g)
+        removeGeneral(generals, g)
+        room:setBanner(body.role == "lord" and "@&firstGenerals" or "@&secondGenerals", generals)
         --[[
         local og = Fk.generals[body.general]
         local to_rm = table.map(og.related_skills, Util.NameMapper)
@@ -228,11 +258,8 @@ local m_1v1_rule = fk.CreateTriggerSkill{
 
         -- trigger leave
 
+        room:setPlayerProperty(body, "shield", Fk.generals[g].shield)
         room:revivePlayer(body, false)
-        room:setPlayerProperty(body, "kingdom", Fk.generals[g].kingdom)
-        room:askForChooseKingdom({body})
-        room:setPlayerProperty(body, "hp", Fk.generals[g].hp)
-        room:setBanner(body.role == "lord" and "@&firstGenerals" or "@&secondGenerals", generals)
         drawInit(room, body, math.min(body.maxHp, 5))
         room.logic:trigger("fk.Debut", body, player.general, false)
       end)
