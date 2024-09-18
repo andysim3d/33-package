@@ -35,6 +35,40 @@ end
 -- 标将改1v1
 --张辽 许褚 甄姬 夏侯渊 刘备 关羽 马超 黄月英 魏延 姜维 孟获 祝融 孙权 甘宁 吕蒙 大乔 孙尚香 貂蝉 华佗 庞德
 
+local xuchu = General(extension, "v11__xuchu", "wei", 4)
+xuchu:addSkill("luoyi")
+
+local v11__xiechan = fk.CreateActiveSkill{
+  name = "v11__xiechan",
+  anim_type = "offensive",
+  card_num = 0,
+  target_num = 0,
+  prompt = "#v11__xiechan",
+  frequency = Skill.Limited,
+  can_use = function(self, player)
+    return player:usedSkillTimes(self.name, Player.HistoryGame) == 0 and player:canPindian(player.next)
+  end,
+  card_filter = Util.FalseFunc,
+  on_use = function(self, room, effect)
+    local player = room:getPlayerById(effect.from)
+    local to = player.next
+    local pindian = player:pindian({to}, self.name)
+    local user = (pindian.results[to.id].winner == player) and {player, to} or {to, player}
+    room:useVirtualCard("duel", nil, user[1], user[2], self.name)
+  end,
+}
+xuchu:addSkill(v11__xiechan)
+
+Fk:loadTranslationTable{
+  ["v11__xuchu"] = "许褚",
+  ["#v11__xuchu"] = "虎痴",
+  ["v11__xiechan"] = "挟缠",
+  [":v11__xiechan"] = "限定技，出牌阶段，你可以与对手拼点，若你赢，则你视为对其使用一张【决斗】，否则其视为对你使用一张【决斗】。",
+  ["#v11__xiechan"] = "挟缠：你可以与对手拼点，若赢你视为对其使用【决斗】，否则其对你使用【决斗】",
+  ["$v11__xiechan1"] = "休走，你我今日定要分个胜负！",
+  ["$v11__xiechan2"] = "不是你死，便是我亡！",
+}
+
 local liubei = General(extension, "v11__liubei", "shu", 4)
 
 local renwang = fk.CreateTriggerSkill{
@@ -69,7 +103,7 @@ Fk:loadTranslationTable{
   ["$v11__renwang2"] = "休怪我无情了！",
 }
 
-local huangyueying = General(extension, "v11__huangyueying", "shu", 3)
+local huangyueying = General(extension, "v11__huangyueying", "shu", 3, 3, General.Female)
 
 local cangji = fk.CreateTriggerSkill{
   name = "v11__cangji",
@@ -108,6 +142,115 @@ Fk:loadTranslationTable{
   ["#v11__huangyueying"] = "归隐的杰女",
   ["v11__cangji"] = "藏机",
   [":v11__cangji"] = "当你死亡时，你可以将你装备区里的所有牌移出游戏，然后你的下一名武将登场时将这些牌置入你的装备区。",
+}
+
+local daqiao = General(extension, "v11__daqiao", "wu", 3, 3, General.Female)
+daqiao:addSkill("guose")
+
+local wanrong = fk.CreateTriggerSkill{
+  name = "v11__wanrong",
+  anim_type = "drawcard",
+  events = {fk.TargetConfirmed},
+  can_trigger = function(self, event, target, player, data)
+    return target == player and player:hasSkill(self) and data.card.trueName == "slash"
+  end,
+  on_use = function(self, event, target, player, data)
+    player:drawCards(1, self.name)
+  end,
+}
+daqiao:addSkill(wanrong)
+
+Fk:loadTranslationTable{
+  ["v11__daqiao"] = "大乔",
+  ["#v11__daqiao"] = "矜持之花",
+  ["v11__wanrong"] = "婉容",
+  [":v11__wanrong"] = "当你成为【杀】的目标后，你可以摸一张牌。",
+  ["$v11__wanrong1"] = "呵哼哼~",
+  ["$v11__wanrong2"] = "看这里，看这里哦~",
+}
+
+local sunshangxiang = General(extension, "v11__sunshangxiang", "wu", 3, 3, General.Female)
+sunshangxiang:addSkill("xiaoji")
+
+local yinli = fk.CreateTriggerSkill{
+  name = "v11__yinli",
+  anim_type = "drawcard",
+  events = {fk.AfterCardsMove},
+  can_trigger = function(self, event, target, player, data)
+    if player:hasSkill(self) and player.phase == Player.NotActive then
+      local ids = {}
+      local room = player.room
+      for _, move in ipairs(data) do
+        if move.toArea == Card.DiscardPile then
+          if move.from and move.from ~= player.id then
+            for _, info in ipairs(move.moveInfo) do
+              if (info.fromArea == Card.PlayerHand or info.fromArea == Card.PlayerEquip) and
+              Fk:getCardById(info.cardId).type == Card.TypeEquip and
+              room:getCardArea(info.cardId) == Card.DiscardPile then
+                table.insertIfNeed(ids, info.cardId)
+              end
+            end
+          end
+        end
+      end
+      ids = U.moveCardsHoldingAreaCheck(room, ids)
+      if #ids > 0 then
+        self.cost_data = ids
+        return true
+      end
+    end
+  end,
+  on_use = function(self, event, target, player, data)
+    local room = player.room
+    local ids = table.simpleClone(self.cost_data)
+    if #ids > 1 then
+      local cards, _ = U.askforChooseCardsAndChoice(player, ids, {"OK"}, self.name,
+      "#v11__yinli-choose", {"get_all"}, 1, #ids)
+      if #cards > 0 then
+        ids = cards
+      end
+    end
+    room:moveCardTo(ids, Card.PlayerHand, player, fk.ReasonJustMove, self.name, nil, true, player.id)
+  end,
+}
+sunshangxiang:addSkill(yinli)
+
+Fk:loadTranslationTable{
+  ["v11__sunshangxiang"] = "孙尚香",
+  ["#v11__sunshangxiang"] = "弓腰姬",
+
+  ["v11__yinli"] = "姻礼",
+  [":v11__yinli"] = "对手的回合内，当该角色的装备牌置入弃牌堆时，你可以获得之。",
+  ["#v11__yinli-choose"] = "姻礼：选择你要获得的装备牌",
+  ["$v11__yinli1"] = "这份大礼我收下啦！",
+  ["$v11__yinli2"] = "小女子谢过将军。",
+}
+
+local diaochan = General(extension, "v11__diaochan", "qun", 3, 3, General.Female)
+diaochan:addSkill("biyue")
+
+local v11__pianyi = fk.CreateTriggerSkill{
+  name = "v11__pianyi",
+  anim_type = "control",
+  frequency = Skill.Compulsory,
+  events = {"fk.Debut"},
+  can_trigger = function(self, event, target, player, data)
+    return target == player and player:hasSkill(self) and player.room.current ~= player
+  end,
+  on_use = function(self, event, target, player, data)
+    player.room:endTurn()
+  end,
+}
+diaochan:addSkill(v11__pianyi)
+
+Fk:loadTranslationTable{
+  ["v11__diaochan"] = "貂蝉",
+  ["#v11__diaochan"] = "绝世的舞姬",
+
+  ["v11__pianyi"] = "翩仪",
+  [":v11__pianyi"] = "锁定技，当你登场时，若此时是对手的回合，对手结束此回合。",
+  ["$v11__pianyi1"] = "呵呵~不能动了吧。",
+  ["$v11__pianyi2"] = "将军看呆了吗？",
 }
 
 local huatuo = General(extension, "v11__huatuo", "qun", 3)

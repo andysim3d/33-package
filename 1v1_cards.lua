@@ -78,7 +78,10 @@ local dismantlementSkill = fk.CreateActiveSkill{
     local to = room:getPlayerById(effect.to)
     if from.dead or to.dead or to:isNude() then return end
     local handcards = to:getCardIds("h")
-    if #handcards == 0 or room:askForChoice(from, {"$Hand", "$Equip"}, self.name) == "$Equip" then
+    local choices = {}
+    if #handcards > 0 then table.insert(choices, "$Hand") end
+    if #to.player_cards[Player.Equip] > 0 then table.insert(choices, "$Equip") end
+    if room:askForChoice(from, choices, self.name) == "$Equip" then
       local cid = room:askForCardChosen(from, to, "e", self.name)
       room:throwCard(cid, self.name, to, from)
     else

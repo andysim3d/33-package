@@ -242,11 +242,7 @@ local m_1v1_rule = fk.CreateTriggerSkill{
         if type(g) == "table" then g = g[1] end
         removeGeneral(generals, g)
         room:setBanner(body.role == "lord" and "@&firstGenerals" or "@&secondGenerals", generals)
-        --[[
-        local og = Fk.generals[body.general]
-        local to_rm = table.map(og.related_skills, Util.NameMapper)
-        table.insertTable(to_rm, og.related_other_skills)
-        --]]
+        
         local to_rm = table.filter(body.player_skills, function(s)
           return not s.attached_equip and s.name[#s.name] ~= "&" -- 不是装备技和按钮的全图图了
         end)
