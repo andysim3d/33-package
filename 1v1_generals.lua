@@ -103,6 +103,30 @@ Fk:loadTranslationTable{
   ["$v11__renwang2"] = "休怪我无情了！",
 }
 
+local guanyu = General(extension, "v11__guanyu", "shu", 4)
+
+local huwei = fk.CreateTriggerSkill{
+  name = "v11__huwei",
+  events = {"fk.Debut"},
+  can_trigger = function(self, event, target, player, data)
+    return player:hasSkill(self) and target == player
+  end,
+  on_use = function(self, event, target, player, data)
+    player.room:useVirtualCard("drowning", nil, player, player.next, self.name)
+  end,
+}
+guanyu:addSkill("wusheng")
+guanyu:addSkill(huwei)
+
+Fk:loadTranslationTable{
+  ["v11__guanyu"] = "关羽",
+  ["#v11__guanyu"] = "美髯公",
+  ["v11__huwei"] = "虎威",
+  [":v11__huwei"] = "当你登场时，你可以视为对对手使用一张【水淹七军】。",
+  ["$v11__huwei1"] = "传令，发动水计！",
+  ["$v11__huwei2"] = "来人，引水对敌！",
+}
+
 local huangyueying = General(extension, "v11__huangyueying", "shu", 3, 3, General.Female)
 
 local cangji = fk.CreateTriggerSkill{
@@ -142,6 +166,87 @@ Fk:loadTranslationTable{
   ["#v11__huangyueying"] = "归隐的杰女",
   ["v11__cangji"] = "藏机",
   [":v11__cangji"] = "当你死亡时，你可以将你装备区里的所有牌移出游戏，然后你的下一名武将登场时将这些牌置入你的装备区。",
+}
+
+local ganning = General(extension, "v11__ganning", "wu", 4)
+
+local qixi = fk.CreateViewAsSkill{
+  name = "v11__qixi",
+  anim_type = "control",
+  pattern = "dismantlement",
+  prompt = "#v11__qixi",
+  card_filter = function(self, to_select, selected)
+    return #selected == 0 and Fk:getCardById(to_select).color == Card.Black
+  end,
+  view_as = function(self, cards)
+    if #cards ~= 1 then return nil end
+    local c = Fk:cloneCard("v11__dismantlement")
+    c.skillName = self.name
+    c:addSubcard(cards[1])
+    return c
+  end,
+  enabled_at_response = function (self, player, response)
+    return not response
+  end
+}
+ganning:addSkill(qixi)
+
+Fk:loadTranslationTable{
+  ["v11__ganning"] = "甘宁",
+  ["#v11__ganning"] = "锦帆游侠",
+  ["v11__qixi"] = "奇袭",
+  [":v11__qixi"] = "你可以将一张黑色牌当【过河拆桥】（1v1版）使用。",
+  ["#v11__qixi"] = "你可以将一张黑色牌当【过河拆桥】（1v1版）使用。",
+}
+
+local lvmeng = General(extension, "v11__lvmeng", "wu", 4)
+
+local v11__shenju = fk.CreateMaxCardsSkill{
+  name = "v11__shenju",
+  correct_func = function(self, player)
+    if player:hasSkill(self) then
+      return player.next.hp
+    end
+  end,
+}
+lvmeng:addSkill(v11__shenju)
+
+local botu = fk.CreateTriggerSkill{
+  name = "v11__botu",
+  events = {fk.TurnEnd},
+  can_trigger = function(self, event, target, player, data)
+    return target == player and player:hasSkill(self)
+    and #player:getTableMark("@v11__botu-turn") == 4
+  end,
+  on_use = function(self, event, target, player, data)
+    player:gainAnExtraTurn()
+  end,
+
+  refresh_events = {fk.CardUsing},
+  can_refresh = function(self, event, target, player, data)
+    return player == target and player:hasSkill(self, true) and player.phase == Player.Play
+    and data.card.suit ~= Card.NoSuit and #player:getTableMark("@v11__botu-turn") < 4
+  end,
+  on_refresh = function(self, event, target, player, data)
+    local room = player.room
+    local mark = player:getTableMark("@v11__botu-turn")
+    table.insertIfNeed(mark, data.card:getSuitString(true))
+    room:setPlayerMark(player, "@v11__botu-turn", mark)
+  end,
+}
+lvmeng:addSkill(botu)
+
+Fk:loadTranslationTable{
+  ["v11__lvmeng"] = "吕蒙",
+  ["#v11__lvmeng"] = "白衣渡江",
+
+  ["v11__shenju"] = "慎拒",
+  [":v11__shenju"] = "锁定技，你的手牌上限+X（X为对手的体力值）。",
+  ["v11__botu"] = "博图",
+  [":v11__botu"] = "回合结束时，若你于出牌阶段内使用过的牌中包含四种花色，你可以执行一个额外的回合。",
+  ["@v11__botu-turn"] = "博图",
+  ["$v11__botu1"] = "今日起兵，渡江攻敌！",
+  ["$v11__botu2"] = "时机已到，全军出击！",
 }
 
 local daqiao = General(extension, "v11__daqiao", "wu", 3, 3, General.Female)
@@ -300,65 +405,12 @@ Fk:loadTranslationTable{
   ["#v11__puji"] = "普济：你可以弃置一张牌，再弃置对手一张牌。失去♠牌的角色摸一张牌",
 }
 
-local hejin = General(extension, "v11__hejin", "qun", 4)
-
-local mouzhu = fk.CreateActiveSkill{
-  name = "v11__mouzhu",
-  anim_type = "control",
-  card_num = 0,
-  card_filter = Util.FalseFunc,
-  target_num = 0,
-  prompt = "#v11__mouzhu",
-  can_use = function(self, player)
-    return player:usedSkillTimes(self.name, Player.HistoryPhase) == 0
-    and not player.next:isNude()
-  end,
-  on_use = function(self, room, effect)
-    local player = room:getPlayerById(effect.from)
-    local to = player.next
-    local card = room:askForCard(to, 1, 1, false, self.name, false, ".", "#v11__mouzhu1-give:"..player.id)
-    room:obtainCard(player, card, false, fk.ReasonGive, to.id, self.name)
-    if to:getHandcardNum() < player:getHandcardNum() and not to.dead and not player.dead then
-      local choices = table.filter({"slash", "duel"}, function (name)
-        local c = Fk:cloneCard(name)
-        c.skillName = self.name
-        return to:canUseTo(c, player, {bypass_distances = true, bypass_times = true})
-      end)
-      if #choices == 0 then return end
-      local choice = room:askForChoice(to, choices, self.name, "#v11__mouzhu2-use:"..player.id)
-      room:useVirtualCard(choice, nil, to, player, self.name, true)
-    end
-  end,
-}
-hejin:addSkill(mouzhu)
-
-local yanhuo = fk.CreateTriggerSkill{
-  name = "v11__yanhuo",
-  anim_type = "control",
-  events = {fk.Death},
-  can_trigger = function(self, event, target, player, data)
-    return target == player and player:hasSkill(self, false, true) and not player:isNude() and not player.next:isNude()
-  end,
-  on_use = function(self, event, target, player, data)
-    local room = player.room
-    local n = #player:getCardIds("he")
-    for i = 1, n do
-      if player.next:isNude() then break end
-      local card = room:askForCardChosen(player, player.next, "he", self.name)
-      room:throwCard(card, self.name, player.next, player)
-    end
-  end,
-}
-hejin:addSkill(yanhuo)
-
+-- 已经搬运至OL身份局
 Fk:loadTranslationTable{
   ["v11__hejin"] = "何进",
   ["#v11__hejin"] = "色厉内荏",
   ["v11__mouzhu"] = "谋诛",
   [":v11__mouzhu"] = "出牌阶段限一次，你可以令对手交给你一张手牌，然后若其手牌数小于你，其选择视为对你使用【杀】或【决斗】。",
-  ["#v11__mouzhu"] = "谋诛：令对手交给你一张手牌，若其手牌数小于你，其视为对你用【杀】或【决斗】",
-  ["#v11__mouzhu1-give"] = "谋诛：请交给 %src 一张手牌",
-  ["#v11__mouzhu2-use"] = "谋诛：选择视为对 %src 使用的牌",
   ["v11__yanhuo"] = "延祸",
   [":v11__yanhuo"] = "当你死亡时，你可以依次弃置对手X张牌（X为你的牌数）。",
 }
@@ -427,13 +479,113 @@ Fk:loadTranslationTable{
   [":v11__niluan"] = "对手的结束阶段，若其体力值大于你，或其本回合对你使用过【杀】，你可以将一张黑色牌当【杀】对其使用。",
 }
 
+local xiangchong = General(extension, "v11__xiangchong", "shu", 4)
 
+local v11__changjun = fk.CreateViewAsSkill{
+  name = "v11__changjun",
+  pattern = "slash,jink",
+  prompt = "#v11__changjun",
+  interaction = function()
+    local names = {}
+    for _, name in ipairs({"slash","jink"}) do
+      local card = Fk:cloneCard(name)
+      if (Fk.currentResponsePattern == nil and Self:canUse(card)) or
+        (Fk.currentResponsePattern and Exppattern:Parse(Fk.currentResponsePattern):match(card)) then
+        table.insertIfNeed(names, card.name)
+      end
+    end
+    if #names == 0 then return end
+    return UI.ComboBox {choices = names}
+  end,
+  card_num = 1,
+  card_filter = function (self, to_select, selected)
+    return #selected == 0 and table.find(Self:getPile(self.name), function (id)
+      return Fk:getCardById(id).suit == Fk:getCardById(to_select).suit
+    end)
+  end,
+  view_as = function(self, cards)
+    if not self.interaction.data or #cards ~= 1 then return end
+    local card = Fk:cloneCard(self.interaction.data)
+    card:addSubcard(cards[1])
+    card.skillName = self.name
+    return card
+  end,
+  enabled_at_play = function(self, player)
+    return #player:getPile(self.name) > 0
+  end,
+  enabled_at_response = function(self, player)
+    return #player:getPile(self.name) > 0
+  end,
+}
+
+local v11__changjun_trigger = fk.CreateTriggerSkill {
+  name = "#v11__changjun_trigger",
+  events = {fk.EventPhaseStart},
+  can_trigger = function(self, event, target, player, data)
+    if target == player then
+      if player.phase == Player.Play then
+        return player:hasSkill(v11__changjun) and not player:isNude()
+      elseif player.phase == Player.Start then
+        return #player:getPile("v11__changjun") > 0
+      end
+    end
+  end,
+  on_cost = function (self, event, target, player, data)
+    if player.phase ~= Player.Play then return true end
+    local room = player.room
+    local x = 1 + tonumber(room:getBanner(player.role == "lord" and "@firstFallen" or "@secondFallen")[1])
+    local cards = room:askForCard(player, 1, x, true, "v11__changjun", true, ".", "#v11__changjun-card:::"..x)
+    if #cards > 0 then
+      self.cost_data = cards
+      return true
+    end
+  end,
+  on_use = function(self, event, target, player, data)
+    local room = player.room
+    if player.phase == Player.Play then
+      player:addToPile("v11__changjun", self.cost_data, true, "v11__changjun")
+    else
+      room:obtainCard(player, player:getPile("v11__changjun"), true, fk.ReasonJustMove, player.id, "v11__changjun")
+    end
+  end,
+}
+v11__changjun:addRelatedSkill(v11__changjun_trigger)
+xiangchong:addSkill(v11__changjun)
+
+local v11__aibing = fk.CreateTriggerSkill{
+  name = "v11__aibing",
+  events = {fk.Death, "fk.Debut"},
+  can_trigger = function(self, event, target, player, data)
+    if target == player then
+      if event == fk.Death then
+        return player:hasSkill(self, false, true)
+      else
+        return player.tag["v11__aibing"]
+      end
+    end
+  end,
+  on_cost = function (self, event, target, player, data)
+    return event ~= fk.Death or player.room:askForSkillInvoke(player, self.name)
+  end,
+  on_use = function(self, event, target, player, data)
+    local room = player.room
+    if event == fk.Death then
+      player.tag["v11__aibing"] = true
+    else
+      player.tag["v11__aibing"] = false
+      room:useVirtualCard("slash", nil, player, player.next, self.name, true)
+    end
+  end,
+}
+xiangchong:addSkill(v11__aibing)
 
 Fk:loadTranslationTable{
   ["v11__xiangchong"] = "向宠",
   ["v11__changjun"] = "畅军",
-  [":v11__changjun"] = "出牌阶段开始时，你可以将至多X张牌置于你的武将牌上（X为你的登场角色序数），若如此做，直到你下回合开始，你可以将与“畅军”牌"..
-  "花色相同的牌当【杀】或【闪】使用或打出；准备阶段，你获得所有“畅军”牌。",
+  [":v11__changjun"] = "出牌阶段开始时，你可以将至多X张牌置于你的武将牌上（X为你的登场角色序数），若如此做，直到你下回合开始，你可以将与“畅军”牌花色相同的牌当【杀】或【闪】使用或打出；准备阶段，你获得所有“畅军”牌。",
+  ["#v11__changjun"] = "畅军：你可以将与“畅军”牌花色相同的牌当【杀】或【闪】使用或打出",
+  ["#v11__changjun-card"] = "畅军：你可以将至多 %arg 张牌置于武将牌上，你可将与“畅军”牌花色相同的牌当【杀】或【闪】使用或打出。",
+  ["#v11__changjun_trigger"] = "畅军",
   ["v11__aibing"] = "哀兵",
   [":v11__aibing"] = "当你死亡时，你可以令你下一名武将登场时视为使用一张【杀】。",
 }
