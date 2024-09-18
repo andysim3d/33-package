@@ -185,7 +185,7 @@ Fk:loadTranslationTable{
 
 Fk:addMiniGame{
   name = "2v2_sel",
-  qml_path = "packages/gamemode/2v2",
+  qml_path = "packages/gamemode/qml/2v2",
   default_choice = function(player, data)
     return data.me[1]
   end,

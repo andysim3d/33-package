@@ -77,31 +77,54 @@ local m_1v1_getLogic = function()
     local lord_generals = {}
     local nonlord_generals = {}
     local all_generals = room:getNGenerals(12)
+    local first_selected, second_selected = {}, {}
+    -- 用于储存双方已选择武将的序号（从0开始），不用字符串储存是考虑替换武将的情况
 
-    local function removeSame(t, n)
-      local same = Fk:getSameGenerals(n)
-      for i, v in ipairs(t) do
-        if table.contains(same, v) or (v == n) then
-          table.remove(t, i)
-          return
-        end
+    local updataGeneralPile = function(p)
+      if p == lord then
+        room:setBanner("@&firstGenerals", lord_generals)
+      else
+        room:setBanner("@&secondGenerals", nonlord_generals)
       end
     end
 
     local function chooseGeneral(p, n)
-      local g = room:askForGeneral(p, all_generals, n)
-      if type(g) == "string" then g = {g} end
-      local t = p == lord and lord_generals or nonlord_generals
-      table.insertTable(t, g)
-      removeSame(all_generals, g[1])
-      if g[2] then removeSame(all_generals, g[2]) end
+      local prompt = "#1v1_mode-choose:::"..(p == lord and "firstPlayer" or "secondPlayer")..":"..n
+      local my_selected = (p == lord) and first_selected or second_selected
+      local ur_selected = (p == lord) and second_selected or first_selected
+      local my_genrals = (p == lord) and lord_generals or nonlord_generals
+      local result = room:askForCustomDialog(p, "m_1v1_mode", "packages/gamemode/qml/1v1.qml",
+      { all_generals, n, my_selected, ur_selected, prompt } )
+      local selected = {}
+      if result ~= "" then
+        result = json.decode(result)
+        for i, id in ipairs(result.ids) do
+          local g = result.generals[i]
+          -- 更新武将替换
+          all_generals[id+1] = g
+          table.insert(my_selected, id)
+          table.insert(my_genrals, g)
+          table.insert(selected, g)
+        end
+      else
+        local selected_list = table.connect(my_selected, ur_selected)
+        for i, g in ipairs(all_generals) do
+          if not table.contains(selected_list, i-1) then
+            table.insert(my_selected, i-1)
+            table.insert(my_genrals, g)
+            table.insert(selected, g)
+            if #selected == n then break end
+          end
+        end
+      end
       room:sendLog{
         type = "#1v1ChooseGeneralsLog",
         arg = p == lord and "firstPlayer" or "secondPlayer",
-        arg2 = g[1],
-        arg3 = g[2] or "",
+        arg2 = selected[1],
+        arg3 = selected[2] or "",
         toast = true,
       }
+      updataGeneralPile(p)
     end
 
     -- 1-2-2-2-2-2-1
@@ -141,8 +164,8 @@ local m_1v1_getLogic = function()
     room:broadcastProperty(nonlord, "kingdom")
     room:setBanner("@firstFallen", "0 / 3")
     room:setBanner("@secondFallen", "0 / 3")
-    room:setBanner("@&firstGenerals", lord_generals)
-    room:setBanner("@&secondGenerals", nonlord_generals)
+    updataGeneralPile(lord)
+    updataGeneralPile(nonlord)
     room:askForChooseKingdom(room.players)
   end
 
@@ -278,6 +301,7 @@ Fk:loadTranslationTable{
   ["#1v1ChooseGeneralsLog"] = "%arg 选择了 %arg2 %arg3",
   ["firstPlayer"] = "先手",
   ["secondPlayer"] = "后手",
+  ["#1v1_mode-choose"] = "你是[%arg]，请选择 %arg2 张武将牌作为备选",
   ["1v1 choose general"] = "请选择第一名出战的武将",
   ["#1v1Score"] = "已阵亡武将数 先手 %arg : %arg2 后手",
   ["@firstFallen"] = "先手阵亡数",
