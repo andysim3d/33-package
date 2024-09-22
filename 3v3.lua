@@ -88,7 +88,60 @@ local m_3v3_desc = [[
   ## 武将牌堆
 
   采用专用的竞技将池，部分武将技能进行了修改。
+  
+  新月杀中采用各版将池的并集，游玩时可以根据个人喜好酌情禁用。
 
+  | 魏 | 蜀 | 吴 | 群 |
+  | ---- | ---- | ---- | ---- |
+  | 2023版： |  |  |  |
+  | 曹操（界） | 诸葛亮（标） | 孙权（标） | 华佗（界） |
+  | 司马懿（界） | 马超（界） | 甘宁（界） | 吕布（专属） |
+  | 张辽（界） | 黄月英（界） | 大乔（界） | 貂蝉（标） |
+  | 甄姬（标） | 姜维（手杀界） | 孙尚香（界） | 伏完 |
+  | 典韦（手杀界） | 徐庶（一将） | 孙策（手杀界） | SP孙策 |
+  | 李典 | 法正 | 诸葛瑾（专属） |  |
+  | 文聘（专属） | 孙乾 | 徐盛（专属） |  |
+  | 郭淮（新服界） | 黄权（专属） | 凌统 |  |
+  |  |  | 韩当 |  |
+  |  |  | 虞翻 |  |
+  |  |  | 顾雍 |  |
+  |  |  | 凌操（手杀） |  |
+  | 2019版：|  |  |  |
+  | 曹操（界） | 刘备（标） | 孙权（标） | 华佗（标） |
+  | 司马懿（界） | 关羽（专属） | 甘宁（界） | 吕布（专属） |
+  | 夏侯惇（专属） | 张飞（标） | 周瑜（界） | 貂蝉（标） |
+  | 张辽（标） | 诸葛亮（标） | 大乔（标） | 庞德（OL界） |
+  | 许褚（界） | 赵云（界） | 孙尚香（标） | 陈宫 |
+  | 郭嘉（标） | 马超（界） | 小乔（界） | 伏完 |
+  | 甄姬（标） | 黄月英（标） | 孙坚 |  |
+  | 典韦（手杀界） | 姜维 | 孙策 |  |
+  | 徐晃（手杀界） | 陈到 | 诸葛瑾（专属） |  |
+  | 李典 | 黄权（专属） | 虞翻 |  |
+  | 文聘（专属） | 马谡（RE） | 顾雍 |  |
+  |  | 周仓 |  |  |
+  | 2013版：|  |  |  |
+  | 曹操 | 刘备 | 孙权 | 华佗 |
+  | 司马懿 | 关羽（专属） | 甘宁 | 吕布（专属） |
+  | 夏侯惇（专属） | 张飞 | 黄盖 | 貂蝉 |
+  | 张辽 | 诸葛亮 | 周瑜 | 庞德 |
+  | 郭嘉 | 赵云（专属） | 大乔 | 贾诩 |
+  | 甄姬 | 马超 | 孙尚香 |  |
+  | 夏侯渊 | 黄月英 | 小乔 |  |
+  | 徐晃 | 姜维 | 孙坚 |  |
+  | 文聘（专属） |  | 孙策 |  |
+  |  |  | 诸葛瑾（专属） |  |
+  | 2012版：|  |  |  |
+  | 曹操 | 刘备 | 孙权 | 华佗 |
+  | 司马懿 | 关羽 | 甘宁 | 吕布 |
+  | 张辽 | 张飞 | 黄盖 | 貂蝉 |
+  | 许褚 | 诸葛亮 | 周瑜 | 庞德 |
+  | 郭嘉 | 赵云 | 陆逊 |  |
+  | 甄姬 | 马超 | 大乔 |  |
+  | 夏侯渊 | 黄月英 | 孙尚香 |  |
+  | 徐晃 | 黄忠 | 小乔 |  |
+  |  | 孟获 | 周泰 |  |
+  |  |  | 孙坚 |  |
+  |  |  | 诸葛瑾（专属） |  |
 ]]
 
 local m_3v3_getLogic = function()
@@ -118,38 +171,97 @@ local m_3v3_getLogic = function()
     local room = self.room
     math.randomseed(tonumber(tostring(os.time()):reverse():sub(1, 6)))
 
-    local all_generals = room:getNGenerals(16)
     local cool_marshal = room.players[2]
     local warm_marshal = room.players[5]
     room.current = cool_marshal
 
-    local cool_generals, warm_generals = {}, {}
+    local general_pool = {
+      --2012
+      "caocao", "simayi", "zhaoliao", "xuchu", "guojia", "zhenji", "xiahouyuan", "xuhuang",
+      "liubei", "guanyu", "zhangfei", "zhugeliang", "zhaoyun", "machao", "huangyueying", "huangzhong", "menghuo",
+      "sunquan", "ganning", "huanggai", "zhouyu", "luxun", "daqiao", "sunshangxiang", "xiaoqiao", "zhoutai", "sunjian",
+      "huatuo", "lvbu", "diaochan", "pangde",
+      --2013
+      "jiangwei", "sunce", "jiaxu",
+      --2019
+      "ex__caocao", "ex__simayi", "ex__xuchu", "m_ex__dianwei", "m_ex__xuhuang", "lidian",
+      "ex__zhaoyun", "ex__machao", "chendao", "re__masu", "zhoucang",
+      "ex__ganning", "ex__zhouyu", "ol_ex__xiaoqiao", "yufan", "guyong",
+      "ol_ex__pangde", "chengong", "fuwan",
+      --2023
+      "ty_ex__guohuai",
+      "ex__huangyueying", "m_ex__jiangwei", "xushu", "fazheng", "sunqian",
+      "ex__daqiao", "ex__sunshangxiang", "m_ex__sunce", "lingtong", "handang", "lingcao",
+      "ol_sp__sunce",
+    }
+    local trueNames = {}
+    for _, name in ipairs(room.general_pile) do
+      if not trueNames[name] then
+        trueNames[name] = true
+      end
+    end
+    for _, general in ipairs(general_pool) do
+      if not trueNames[general] then
+        table.insert(room.general_pile, general)  --加入未在白名单内的trueName，eg.姜维孙策，外部扩展
+      end
+    end
+    table.shuffle(room.general_pile)
+    local all_generals = room:getNGenerals(16)
+    if #all_generals < 16 then
+      room:sendLog{
+        type = "#NoGeneralDraw",
+        toast = true,
+      }
+      room:gameOver("")
+    end
 
-    local function removeSame(t, n)
-      local same = Fk:getSameGenerals(n)
-      for i, v in ipairs(t) do
-        if table.contains(same, v) or (v == n) then
-          table.remove(t, i)
-          return
-        end
+    local cool_generals, warm_generals = {}, {}
+    local cool_selected, warm_selected = {}, {}
+
+    local updataGeneralPile = function(p)
+      if p == cool_marshal then
+        room:setBanner("@&cool_generals", cool_generals)
+      else
+        room:setBanner("@&warm_generals", warm_generals)
       end
     end
     local function chooseGeneral(p, n)
-      local g = room:askForGeneral(p, all_generals, n, true)
-      if type(g) == "string" then g = {g} end
-      local t = p == cool_marshal and cool_generals or warm_generals
-      table.insertTable(t, g)
-      removeSame(all_generals, g[1])
-      if g[2] then removeSame(all_generals, g[2]) end
+      local prompt = "#3v3_mode-choose:::"..(p == cool_marshal and "firstPlayer" or "secondPlayer")..":"..n
+      local my_selected = (p == cool_marshal) and cool_selected or warm_selected
+      local ur_selected = (p == cool_marshal) and warm_selected or cool_selected
+      local my_genrals = (p == cool_marshal) and cool_generals or warm_generals
+      local result = room:askForCustomDialog(p, "m_3v3_mode", "packages/gamemode/qml/1v1.qml",
+      { all_generals, n, my_selected, ur_selected, prompt } )
+      local selected = {}
+      if result ~= "" then
+        result = json.decode(result)
+        for i, id in ipairs(result.ids) do
+          local g = result.generals[i]
+          -- 更新武将替换
+          all_generals[id+1] = g
+          table.insert(my_selected, id)
+          table.insert(my_genrals, g)
+          table.insert(selected, g)
+        end
+      else
+        local selected_list = table.connect(my_selected, ur_selected)
+        for i, g in ipairs(all_generals) do
+          if not table.contains(selected_list, i-1) then
+            table.insert(my_selected, i-1)
+            table.insert(my_genrals, g)
+            table.insert(selected, g)
+            if #selected == n then break end
+          end
+        end
+      end
       room:sendLog{
-        type = "#3v3ChooseGeneralsLog",
+        type = "#1v1ChooseGeneralsLog",
         arg = p == cool_marshal and "cool" or "warm",
-        arg2 = g[1],
-        arg3 = g[2] or "",
+        arg2 = selected[1],
+        arg3 = selected[2] or "",
         toast = true,
       }
-      room:setBanner("@&cool_generals", cool_generals)
-      room:setBanner("@&warm_generals", warm_generals)
+      updataGeneralPile(p)
     end
 
     chooseGeneral(warm_marshal, 1)
@@ -191,6 +303,37 @@ local m_3v3_getLogic = function()
       room:broadcastProperty(p, "general")
       p.default_reply = ""
       p.default_reply = ""
+    end
+  end
+
+  function m_3v3_logic:prepareDrawPile()
+    local room = self.room ---@type Room
+    local allCardIds = Fk:getAllCardIds()
+
+    for i = #allCardIds, 1, -1 do
+      local id = allCardIds[i]
+      local card = Fk:getCardById(id)
+      if card.is_derived or card.name == "lightning" then
+        table.removeOne(allCardIds, id)
+        table.insert(room.void, id)
+        room:setCardArea(id, Card.Void, nil)
+      elseif card.name == "ex_nihilo" then
+        table.insert(room.void, id)
+        room:setCardArea(id, Card.Void, nil)
+        local newCard = room:printCard("v33__ex_nihilo", card.suit, card.number)
+        allCardIds[i] = newCard.id
+      elseif card.name == "crossbow" then
+        table.insert(room.void, id)
+        room:setCardArea(id, Card.Void, nil)
+        local newCard = room:printCard("xbow", card.suit, card.number)
+        allCardIds[i] = newCard.id
+      end
+    end
+
+    table.shuffle(allCardIds)
+    room.draw_pile = allCardIds
+    for _, id in ipairs(room.draw_pile) do
+      room:setCardArea(id, Card.DrawPile, nil)
     end
   end
 
@@ -391,43 +534,17 @@ local m_3v3_mode = fk.CreateGameMode{
   whitelist = {
     "3v3_cards",
 
-    "standard_ex",-- 先随便开一些
+    "3v3_generals",
+    --[["standard",
+    "standard_ex",
+    "m_shzl_ex",
     "wind",
     "fire",
     "forest",
-    "mountain",
-    "shadow",
-    "thunder",
-
-    "yj2011",
-    "yj2012",
-    "yj2013",
-    "yj2014",
-    "yj2015",
-    "yczh2016",
-    "yczh2017",
-
-    "sp",
-    "sp_jsp",
-
     "ol_sp1",
-    "ol_sp4",
-    "ol_wende",
-
-    "tenyear_xinghuo",
-
-    "courage",
-    "strictness",
-
-    "overseas_strategizing",
-
-    "sxfy_shaoyin",
-    "sxfy_taiyin",
-
-    "transition",
-    "decline",
-
-    "lunar_sp1",
+    "yjcm2011",
+    "yjcm2012",
+    "yjcm2013",]]--
   },
   winner_getter = function(self, victim)
     if not victim.surrendered and victim.rest > 0 then
@@ -438,6 +555,7 @@ local m_3v3_mode = fk.CreateGameMode{
     elseif victim.role == "warm_marshal" then
       return "cool_marshal+cool_vanguard"
     end
+    return ""
   end,
   get_adjusted = function (self, player)
     if player.role:endsWith("marshal") then
@@ -457,6 +575,7 @@ Fk:loadTranslationTable{
   ["cool_vanguard"] = "冷方先锋",
   ["warm_vanguard"] = "暖方先锋",
 
+  ["#3v3_mode-choose"] = "你是[%arg]，请选择 %arg2 张武将牌作为备选",
   ["#3v3ChooseGeneralsLog"] = "%arg 选择了 %arg2 %arg3",
   ["3v3_choose_general"] = "请为本方阵营选择选择武将，从左至右为：左方先锋 主帅 右方先锋",
   ["@&cool_generals"] = "冷方已选武将",
