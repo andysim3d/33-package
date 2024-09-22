@@ -176,23 +176,23 @@ local m_3v3_getLogic = function()
     room.current = cool_marshal
 
     local general_pool = {
-      --2012
-      "caocao", "simayi", "zhaoliao", "xuchu", "guojia", "zhenji", "xiahouyuan", "xuhuang",
-      "liubei", "guanyu", "zhangfei", "zhugeliang", "zhaoyun", "machao", "huangyueying", "huangzhong", "menghuo",
-      "sunquan", "ganning", "huanggai", "zhouyu", "luxun", "daqiao", "sunshangxiang", "xiaoqiao", "zhoutai", "sunjian",
-      "huatuo", "lvbu", "diaochan", "pangde",
-      --2013
-      "jiangwei", "sunce", "jiaxu",
-      --2019
-      "ex__caocao", "ex__simayi", "ex__xuchu", "m_ex__dianwei", "m_ex__xuhuang", "lidian",
-      "ex__zhaoyun", "ex__machao", "chendao", "re__masu", "zhoucang",
-      "ex__ganning", "ex__zhouyu", "ol_ex__xiaoqiao", "yufan", "guyong",
-      "ol_ex__pangde", "chengong", "fuwan",
       --2023
       "ty_ex__guohuai",
       "ex__huangyueying", "m_ex__jiangwei", "xushu", "fazheng", "sunqian",
       "ex__daqiao", "ex__sunshangxiang", "m_ex__sunce", "lingtong", "handang", "lingcao",
       "ol_sp__sunce",
+      --2019
+      "ex__caocao", "ex__simayi", "ex__xuchu", "m_ex__dianwei", "m_ex__xuhuang", "lidian",
+      "ex__zhaoyun", "ex__machao", "chendao", "re__masu", "zhoucang",
+      "ex__ganning", "ex__zhouyu", "ol_ex__xiaoqiao", "yufan", "guyong",
+      "ol_ex__pangde", "chengong", "fuwan",
+      --2013
+      "jiangwei", "sunce", "jiaxu",
+      --2012
+      "caocao", "simayi", "zhaoliao", "xuchu", "guojia", "zhenji", "xiahouyuan", "xuhuang",
+      "liubei", "guanyu", "zhangfei", "zhugeliang", "zhaoyun", "machao", "huangyueying", "huangzhong", "menghuo",
+      "sunquan", "ganning", "huanggai", "zhouyu", "luxun", "daqiao", "sunshangxiang", "xiaoqiao", "zhoutai", "sunjian",
+      "huatuo", "lvbu", "diaochan", "pangde",
     }
     local trueNames = {}
     for _, name in ipairs(room.general_pile) do
@@ -201,8 +201,9 @@ local m_3v3_getLogic = function()
       end
     end
     for _, general in ipairs(general_pool) do
-      if not trueNames[general] then
+      if Fk.generals[general] and not trueNames[Fk.generals[general].trueName] then
         table.insert(room.general_pile, general)  --加入未在白名单内的trueName，eg.姜维孙策，外部扩展
+        trueNames[Fk.generals[general].trueName] = true
       end
     end
     table.shuffle(room.general_pile)
@@ -535,7 +536,8 @@ local m_3v3_mode = fk.CreateGameMode{
     "3v3_cards",
 
     "3v3_generals",
-    --[["standard",
+    --[[
+    "standard",
     "standard_ex",
     "m_shzl_ex",
     "wind",
