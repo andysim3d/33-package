@@ -113,12 +113,14 @@ local m_2v2_getLogic = function()
 end
 local m_2v2_rule = fk.CreateTriggerSkill{
   name = "#m_2v2_rule",
+  mute = true,
   priority = 0.001,
-  refresh_events = {fk.DrawInitialCards, fk.DrawNCards, fk.GameOverJudge, fk.Deathed},
-  can_refresh = function(self, event, target, player, data)
+  events = {fk.DrawInitialCards, fk.DrawNCards, fk.Deathed},
+  can_trigger = function(self, event, target, player, data)
     return target == player and not (event == fk.Deathed and player.rest > 0)
   end,
-  on_refresh = function(self, event, target, player, data)
+  on_cost = Util.TrueFunc,
+  on_use = function(self, event, target, player, data)
     local room = player.room
     if event == fk.DrawNCards then
       local turnevents = room.logic.event_recorder[GameEvent.Turn] or Util.DummyTable
@@ -130,16 +132,10 @@ local m_2v2_rule = fk.CreateTriggerSkill{
       if player.seat == 4 then
         data.num = data.num + 1
       end
-    elseif event == fk.GameOverJudge then
-      local winner = Fk.game_modes[room.settings.gameMode]:getWinner(player)
-      if winner ~= "" then
-        room:gameOver(winner)
-        return true
-      end
     else
       for _, p in ipairs(room.alive_players) do
         if p.role == player.role then
-          p:drawCards(1)
+          p:drawCards(1, self.name)
         end
       end
     end
@@ -179,6 +175,7 @@ local m_2v2_mode = fk.CreateGameMode{
 Fk:loadTranslationTable{
   ["m_2v2_mode"] = "2v2",
   [":m_2v2_mode"] = desc_2v2,
+  ["#m_2v2_rule"] = "2v2",
   ["time limitation: 2 min"] = "游戏时长达到2分钟",
   ["2v2: left you alive"] = "你所处队伍仅剩你存活",
 }
