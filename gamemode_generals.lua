@@ -620,7 +620,7 @@ local nos__wanyi = fk.CreateViewAsSkill{
     local all_names = {"chasing_near", "unexpectation", "drowning", "foresight"}
     local names = table.simpleClone(all_names)
     for _, name in ipairs(all_names) do
-      if table.contains(U.getMark(Self, "nos__wanyi-turn"), name) then
+      if table.contains(Self:getTableMark("nos__wanyi-turn"), name) then
         table.removeOne(names, name)
       end
     end
@@ -632,7 +632,7 @@ local nos__wanyi = fk.CreateViewAsSkill{
       return Fk:getCardById(to_select):getMark(mark) ~= 0 end)
   end,
   before_use = function (self, player, use)
-    local mark = U.getMark(player, "nos__wanyi-turn")
+    local mark = player:getTableMark("nos__wanyi-turn")
     table.insert(mark, use.card.name)
     player.room:setPlayerMark(player, "nos__wanyi-turn", mark)
   end,

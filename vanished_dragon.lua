@@ -342,7 +342,7 @@ local vanished_dragon_getLogic = function()
       end
 
       if p.id == lord then
-        local skill = (p.maxHp <= 4 and p.gender == General.Male) and "vd_dongcha" or "vd_sheshen"
+        local skill = (p.maxHp <= 4 and p:isMale()) and "vd_dongcha" or "vd_sheshen"
         room:sendLog{type = "#VDLoyalistSkill", from = p.id, arg = skill, toast = true}
         room:handleAddLoseSkills(p, skill, nil, false)
       end

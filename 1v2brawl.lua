@@ -107,7 +107,7 @@ local brawl_getLogic = function()
     for _, p in ipairs(players) do
       local choice = p.reply_ready and json.decode(p.client_reply) or p.default_reply
       room:setPlayerMark(p, "_brawl_skills", choice)
-      choice = table.map(choice, function(s) return Fk:translate(s) end)
+      choice = table.map(choice, Util.TranslateMapper)
       room:setPlayerMark(p, "@brawl_skills", "<font color='burlywood'>" .. table.concat(choice, " ") .. "</font>")
       p.default_reply = ""
     end

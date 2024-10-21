@@ -57,7 +57,7 @@ local desc_chaos = [[
 ]]
 
 local chaos_getLogic = function()
-  local chaos_logic = GameLogic:subclass("chaos_logic")
+  local chaos_logic = GameLogic:subclass("chaos_logic") ---@class GameLogic
 
   function chaos_logic:assignRoles()
     local room = self.room
@@ -91,7 +91,7 @@ local chaos_getLogic = function()
         room:setCardArea(id, Card.Void, nil)
       end
     end
-  
+
     table.shuffle(allCardIds)
     room.draw_pile = allCardIds
     for _, id in ipairs(room.draw_pile) do

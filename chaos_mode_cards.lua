@@ -240,7 +240,7 @@ local replaceWithAFakeSkill = fk.CreateActiveSkill{
     if #cards == 0 then return false end
     room:moveCards(table.unpack(moveInfos))
     local IdMapper = {}
-    local players = table.map(room.alive_players, function(p) return p.id end)
+    local players = table.map(room.alive_players, Util.IdMapper)
     for _, cid in ipairs(cards) do
       if room:getCardArea(cid) == Card.Processing then
         table.shuffle(players)

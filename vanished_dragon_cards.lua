@@ -359,6 +359,7 @@ local craftyEscape = fk.CreateTrickCard{
   skill = craftyEscapeSkill,
   suit = Card.Spade,
   number = 11,
+  is_passive = true,
 }
 extension:addCards{
   craftyEscape,

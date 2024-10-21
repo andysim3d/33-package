@@ -40,7 +40,7 @@ local m_1v1_getLogic = function()
   function m_1v1_logic:prepareDrawPile()
     local room = self.room ---@type Room
     local allCardIds = Fk:getAllCardIds()
-  
+
     for i = #allCardIds, 1, -1 do
       local id = allCardIds[i]
       local card = Fk:getCardById(id)
@@ -55,7 +55,7 @@ local m_1v1_getLogic = function()
         allCardIds[i] = newCard.id
       end
     end
-  
+
     table.shuffle(allCardIds)
     room.draw_pile = allCardIds
     for _, id in ipairs(room.draw_pile) do
@@ -209,7 +209,6 @@ local m_1v1_rule = fk.CreateTriggerSkill{
     elseif event == fk.DrawNCards then
       if player.role == "lord" and player.tag[self.name] == nil then
         player.tag[self.name] = 1
-        room:setTag("SkipNormalDeathProcess", true)
         data.n = data.n - 1
       end
     elseif event == fk.GameOverJudge then
@@ -265,7 +264,7 @@ local m_1v1_rule = fk.CreateTriggerSkill{
         if type(g) == "table" then g = g[1] end
         removeGeneral(generals, g)
         room:setBanner(body.role == "lord" and "@&firstGenerals" or "@&secondGenerals", generals)
-        
+
         local to_rm = table.filter(body.player_skills, function(s)
           return not s.attached_equip and s.name[#s.name] ~= "&" -- 不是装备技和按钮的全图图了
         end)

@@ -528,7 +528,7 @@ local womenDressSkill = fk.CreateTriggerSkill{
   frequency = Skill.Compulsory,
   events = {fk.TargetConfirmed},
   can_trigger = function(self, event, target, player, data)
-    return target == player and player:hasSkill(self) and (player.gender == General.Male or player.gender == General.Bigender) and
+    return target == player and player:hasSkill(self) and (player:isMale()) and
       data.card.trueName == "slash"
   end,
   on_use = function(self, event, target, player, data)
