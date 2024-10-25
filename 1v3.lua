@@ -75,7 +75,7 @@ local m_1v3_getLogic = function()
     local generalNum = room.settings.generalNum
     local n = room.settings.enableDeputy and 2 or 1
     for _, p in ipairs(room.players) do
-      p.role_shown = true
+      room:setPlayerProperty(p, "role_shown", true)
       room:broadcastProperty(p, "role")
     end
 

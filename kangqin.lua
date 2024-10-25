@@ -38,7 +38,7 @@ local kangqin_getLogic = function()
     for i = 1, n do
       local p = players[i]
       p.role = roles[i]
-      p.role_shown = true
+      room:setPlayerProperty(p, "role_shown", true)
       room:broadcastProperty(p, "role")
     end
   end

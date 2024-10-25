@@ -66,7 +66,7 @@ local chaos_getLogic = function()
     for i = 1, n do
       local p = room.players[i]
       p.role = "hidden"
-      p.role_shown = true
+      room:setPlayerProperty(p, "role_shown", true)
       room:broadcastProperty(p, "role")
       --p.role = p._splayer:getScreenName() --结算显示更好，但身份图标疯狂报错
     end

@@ -467,7 +467,7 @@ local qixi_get_logic = function()
     for i, p in ipairs(room.players) do
       room:addPlayerMark(p, t[i])
       p.role = "hidden"
-      p.role_shown = true
+      room:setPlayerProperty(p, "role_shown", true)
       room:broadcastProperty(p, "role")
     end
 

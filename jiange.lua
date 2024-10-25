@@ -137,7 +137,7 @@ local jiange_getLogic = function()
     for i = 1, #room.players do
       local p = room.players[i]
       p.role = roles[i]
-      p.role_shown = true
+      room:setPlayerProperty(p, "role_shown", true)
       room:broadcastProperty(p, "role")
     end
     room.current = room.players[1]

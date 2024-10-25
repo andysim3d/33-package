@@ -122,7 +122,7 @@ local vanished_dragon_getLogic = function()
       local p = players[i]
       p.role = roles[i]
       if p.role == "loyalist" and not room:getTag("ShownLoyalist") then
-        p.role_shown = true
+        room:setPlayerProperty(p, "role_shown", true)
         room:broadcastProperty(p, "role")
         room:setTag("ShownLoyalist", p.id)
         p.role = "lord"
@@ -389,7 +389,7 @@ local vanished_dragon_rule = fk.CreateTriggerSkill{
     if player.id == room:getTag("ShownLoyalist") then
       local lord = room:getLord()
       if not lord then return end
-      lord.role_shown = true
+      room:setPlayerProperty(lord, "role_shown", true)
       room:broadcastProperty(lord, "role")
       room:sendLog{type = "#VDLordExploded", from = lord.id, toast = true}
 

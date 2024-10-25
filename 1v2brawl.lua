@@ -45,7 +45,7 @@ local brawl_getLogic = function()
     local room = self.room ---@type Room
     room:doBroadcastNotify("ShowToast", Fk:translate("#BrawlInitialNotice"))
     for _, p in ipairs(room.players) do
-      p.role_shown = true
+      room:setPlayerProperty(p, "role_shown", true)
       room:broadcastProperty(p, "role")
     end
 

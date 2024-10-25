@@ -48,7 +48,7 @@ local m_2v2_getLogic = function()
     room.current = lord
     lord.role = self.start_role
     for _, p in ipairs(room.players) do
-      p.role_shown = true
+      room:setPlayerProperty(p, "role_shown", true)
       room:broadcastProperty(p, "role")
     end
 

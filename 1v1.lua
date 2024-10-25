@@ -68,13 +68,12 @@ local m_1v1_getLogic = function()
 
   function m_1v1_logic:chooseGenerals()
     local room = self.room ---@type Room
-    local generalNum = 12
 
     local lord = room.players[1]
     room.current = lord
     local nonlord = room.players[2]
 
-    nonlord.role_shown = true
+    room:setPlayerProperty(nonlord, "role_shown", true)
     room:broadcastProperty(nonlord, "role")
 
     local lord_generals = {}
