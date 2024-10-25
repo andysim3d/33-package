@@ -78,6 +78,7 @@ local chaos_getLogic = function()
 
   function chaos_logic:prepareDrawPile()
     local room = self.room
+    local seed = math.random(2 << 32 - 1)
     local allCardIds = Fk:getAllCardIds()
     local blacklist = {"god_salvation", "indulgence", "supply_shortage", "nullification"}
     local whitelist = {"time_flying", "substituting", "replace_with_a_fake", "wenhe_chaos"}
@@ -92,11 +93,13 @@ local chaos_getLogic = function()
       end
     end
 
-    table.shuffle(allCardIds)
+    table.shuffle(allCardIds, seed)
     room.draw_pile = allCardIds
     for _, id in ipairs(room.draw_pile) do
       room:setCardArea(id, Card.DrawPile, nil)
     end
+
+    room:doBroadcastNotify("PrepareDrawPile", seed)
   end
 
   function chaos_logic:chooseGenerals()

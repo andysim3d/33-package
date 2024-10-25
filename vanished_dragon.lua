@@ -134,6 +134,7 @@ local vanished_dragon_getLogic = function()
 
   function vanished_dragon_logic:prepareDrawPile()
     local room = self.room
+    local seed = math.random(2 << 32 - 1)
     local allCardIds = Fk:getAllCardIds()
     local blacklist = {"snatch", "supply_shortage", "ex_nihilo", "amazing_grace", "collateral", "nullification", "lightning", "eight_diagram", "qinggang_sword", "blade"}
     local whitelist = {"diversion", "paranoid", "reinforcement", "abandoning_armor", "crafty_escape", "floating_thunder", "glittery_armor", "seven_stars_sword", "steel_lance"}
@@ -147,12 +148,14 @@ local vanished_dragon_getLogic = function()
         room:setCardArea(id, Card.Void, nil)
       end
     end
-  
-    table.shuffle(allCardIds)
+
+    table.shuffle(allCardIds, seed)
     room.draw_pile = allCardIds
     for _, id in ipairs(room.draw_pile) do
       room:setCardArea(id, Card.DrawPile, nil)
     end
+
+    room:doBroadcastNotify("PrepareDrawPile", seed)
   end
 
   function vanished_dragon_logic:chooseGenerals()

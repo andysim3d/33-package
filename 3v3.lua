@@ -309,6 +309,7 @@ local m_3v3_getLogic = function()
 
   function m_3v3_logic:prepareDrawPile()
     local room = self.room ---@type Room
+    local seed = math.random(2 << 32 - 1)
     local allCardIds = Fk:getAllCardIds()
 
     for i = #allCardIds, 1, -1 do
@@ -331,11 +332,13 @@ local m_3v3_getLogic = function()
       end
     end
 
-    table.shuffle(allCardIds)
+    table.shuffle(allCardIds, seed)
     room.draw_pile = allCardIds
     for _, id in ipairs(room.draw_pile) do
       room:setCardArea(id, Card.DrawPile, nil)
     end
+
+    room:doBroadcastNotify("PrepareDrawPile", seed)
   end
 
   function m_3v3_logic:attachSkillToPlayers()
