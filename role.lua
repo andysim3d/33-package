@@ -77,25 +77,18 @@ local role_mode = fk.CreateGameMode{
         room:gameOver("")
       end
       table.shuffle(generals)
+      local req = Request:new(nonlord, "AskForGeneral")
       for i, p in ipairs(nonlord) do
         local arg = table.slice(generals, (i - 1) * generalNum + 1, i * generalNum + 1)
-        p.request_data = json.encode{ arg, 1 }
-        p.default_reply = table.random(arg, 1)
+        req:setData(p, { arg, 1 })
+        req:setDefaultReply(p, table.random(arg, 1))
       end
-  
-      room:notifyMoveFocus(nonlord, "AskForGeneral")
-      room:doBroadcastRequest("AskForGeneral", nonlord)
-  
+
+      req:ask()
+
       local selected = {}
       for _, p in ipairs(nonlord) do
-        local general
-        if p.general == "" and p.reply_ready then
-          local general_ret = json.decode(p.client_reply)
-          general = general_ret[1]
-        else
-          general = p.default_reply[1]
-        end
-        p.default_reply = ""
+        local general = req:getResult(p)
         table.insert(selected, general)
         room:findGeneral(general)
       end

@@ -110,38 +110,32 @@ local chaos_getLogic = function()
     room.current = lord
     lord.role = self.start_role
 
-    local nonlord = room.players
-    local generals = Fk:getGeneralsRandomly(#nonlord * generalNum)
+    local players = room.players
+    local generals = room:getNGenerals(#players * generalNum)
+    local req = Request:new(players, "AskForGeneral")
     table.shuffle(generals)
-    for _, p in ipairs(nonlord) do
-      local arg = {}
-      for i = 1, generalNum do
-        table.insert(arg, table.remove(generals, 1).name)
-      end
-      p.request_data = json.encode({ arg, n })
-      p.default_reply = table.random(arg, n)
+    for i, p in ipairs(players) do
+      local arg = table.slice(generals, (i - 1) * generalNum + 1, i * generalNum + 1)
+      req:setData(p, { arg, n })
+      req:setDefaultReply(p, table.random(arg, n))
     end
 
     room:doBroadcastNotify("ShowToast", Fk:translate("chaos_intro"))
 
-    room:notifyMoveFocus(nonlord, "AskForGeneral")
-    room:doBroadcastRequest("AskForGeneral", nonlord)
+    req:ask()
 
-    for _, p in ipairs(nonlord) do
-      if p.general == "" and p.reply_ready then
-        local generals = json.decode(p.client_reply)
-        local general = generals[1]
-        local deputy = generals[2]
-        room:setPlayerGeneral(p, general, true, true)
-        room:setDeputyGeneral(p, deputy)
-      else
-        room:setPlayerGeneral(p, p.default_reply[1], true, true)
-        room:setDeputyGeneral(p, p.default_reply[2])
-      end
-      p.default_reply = ""
+    local selected = {}
+    for _, p in ipairs(players) do
+      local gs = req:getResult(p)
+      local general = gs[1]
+      local deputy = gs[2]
+      room:setPlayerGeneral(p, general, true, true)
+      room:setDeputyGeneral(p, deputy)
     end
+    generals = table.filter(generals, function(g) return not table.contains(selected, g) end)
+    room:returnToGeneralPile(generals)
 
-    room:askForChooseKingdom(nonlord)
+    room:askForChooseKingdom(players)
   end
 
   return chaos_logic

@@ -219,7 +219,9 @@ local jiange_getLogic = function()
       ["shu"] = table.random(generals["shu"], 2 * room.settings.generalNum),
     }
 
-    for i, p in ipairs(room.players) do
+    local players = room.players
+    local req = Request:new(room.players, "AskForGeneral")
+    for i, p in ipairs(players) do
       local arg = {}
       if i % 2 == 1 then --普通武将
         local n = room.settings.generalNum
@@ -233,8 +235,8 @@ local jiange_getLogic = function()
         arg = machines[p.role]
       end
       if #arg > 0 then
-        p.request_data = json.encode({ arg, 1, true })
-        p.default_reply = arg[1]
+        req:setData(p, { arg, 1, true })
+        req:setDefaultReply(p, { arg[1] })
       else
         room:sendLog{
           type = "#NoGeneralDraw",
@@ -243,26 +245,18 @@ local jiange_getLogic = function()
         room:gameOver("")
       end
     end
-    room:notifyMoveFocus(room.players, "AskForGeneral")
-    room:doBroadcastRequest("AskForGeneral", room.players)
+    req:ask()
 
     local selected = {}
-    for _, p in ipairs(room.players) do
-      local general_ret
-      if p.general == "" and p.reply_ready then
-        general_ret = json.decode(p.client_reply)[1]
-      else
-        general_ret = p.default_reply
-      end
+    for _, p in ipairs(players) do
+      local general_ret = req:getResult(p)[1]
       room:setPlayerGeneral(p, general_ret, true, true)
       p.general = general_ret
       p.gender = Fk.generals[general_ret].gender
       room:notifyProperty(p, p, "general")
       room:broadcastProperty(p, "gender")
-      p.kingdom = p.role
-      room:broadcastProperty(p, "kingdom")
+      room:setPlayerProperty(p, "kingdom", p.role)
       table.insertIfNeed(selected, general_ret)
-      p.default_reply = ""
     end
     for _, g in ipairs(selected) do
       room:findGeneral(g)
@@ -283,8 +277,8 @@ local jiange_getLogic = function()
           n = n - 1
         end
         if #arg > 0 then
-          p.request_data = json.encode({ arg, 1 })
-          p.default_reply = arg[1]
+          req:setData(p, { arg, 1 })
+          req:setDefaultReply(p, { arg[1] })
         else
           room:sendLog{
             type = "#NoGeneralDraw",
@@ -293,20 +287,13 @@ local jiange_getLogic = function()
           room:gameOver("")
         end
       end
-      room:notifyMoveFocus(room.players, "AskForGeneral")
-      room:doBroadcastRequest("AskForGeneral", room.players)
+      req:ask()
 
       selected = {}
-      for _, p in ipairs(room.players) do
-        local general_ret
-        if p.deputyGeneral == "" and p.reply_ready then
-          general_ret = json.decode(p.client_reply)[1]
-        else
-          general_ret = p.default_reply
-        end
+      for _, p in ipairs(players) do
+        local general_ret = req:getResult(p)[1]
         room:setDeputyGeneral(p, general_ret)
         table.insertIfNeed(selected, general_ret)
-        p.default_reply = ""
       end
       for _, g in ipairs(selected) do
         room:findGeneral(g)

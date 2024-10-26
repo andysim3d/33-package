@@ -73,10 +73,11 @@ local brawl_getLogic = function()
       room:gameOver("")
     end
 
+    local req = Request:new(players, "CustomDialog")
     for k, p in ipairs(players) do
       local avatar = p._splayer:getAvatar()
       if avatar == "anjiang" then avatar = table.random{ "blank_shibing", "blank_nvshibing" } end
-      local avatar_general = Fk.generals[avatar] or Fk.generals["mouxusheng"]
+      local avatar_general = Fk.generals[avatar] or Fk.generals["sunce"] or Fk.generals["diaochan"]
       room:setPlayerGeneral(p, avatar_general.name, true)
       room:broadcastProperty(p, "general")
       room:setPlayerProperty(p, "shield", 0)
@@ -93,23 +94,22 @@ local brawl_getLogic = function()
         generals = table.slice(general_pool, skill_num * (k - 1) + 1 , skill_num * k + 1)
       end
       local num = p.role == "lord" and 3 or 2
-      p.request_data = json.encode({
+      req:setData(p, {
         path = "packages/utility/qml/ChooseSkillBox.qml",
         data = {
           skills, num, num, "#brawl-choose:::" .. tostring(num), generals
         },
       })
-      p.default_reply = table.random(skills, num)
+      req:setDefaultReply(table.random(skills, num))
     end
 
-    room:doBroadcastRequest("CustomDialog", players)
+    req:ask()
 
     for _, p in ipairs(players) do
-      local choice = p.reply_ready and json.decode(p.client_reply) or p.default_reply
+      local choice = req:getResult(p)
       room:setPlayerMark(p, "_brawl_skills", choice)
       choice = table.map(choice, Util.TranslateMapper)
       room:setPlayerMark(p, "@brawl_skills", "<font color='burlywood'>" .. table.concat(choice, " ") .. "</font>")
-      p.default_reply = ""
     end
 
     --[[ 鸽！直接用头像，我写在最前面

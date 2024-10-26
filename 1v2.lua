@@ -38,41 +38,36 @@ local m_1v2_getLogic = function()
 
     local lord = room:getLord()
     room.current = lord
-    local nonlord = room.players
+    local players = room.players
     -- 地主多发俩武将
-    local generals = room:getNGenerals(#nonlord * generalNum + 2)
-    for i, p in ipairs(nonlord) do
+    local generals = room:getNGenerals(#players * generalNum + 2)
+    local req = Request:new(players, "AskForGeneral")
+    for i, p in ipairs(players) do
       local arg = table.slice(generals, (i - 1) * generalNum + 1, i * generalNum + 1)
       if p.role == "lord" then
         local count = #generals
         table.insert(arg, generals[count])
         table.insert(arg, generals[count - 1])
       end
-      p.request_data = json.encode({ arg, 1 })
-      p.default_reply = arg[1]
+      req:setData(p, { arg, 1 })
+      req:setDefaultReply(p, { arg[1] })
     end
-    room:notifyMoveFocus(nonlord, "AskForGeneral")
-    room:doBroadcastRequest("AskForGeneral", nonlord)
+    req:ask()
     local selected = {}
-    for _, p in ipairs(nonlord) do
+    for _, p in ipairs(players) do
       local general_ret
-      if p.general == "" and p.reply_ready then
-        general_ret = json.decode(p.client_reply)[1]
-      else
-        general_ret = p.default_reply
-      end
+      general_ret = req:getResult(p)[1]
       room:setPlayerGeneral(p, general_ret, true, true)
       table.insertIfNeed(selected, general_ret)
-      p.default_reply = ""
     end
     generals = table.filter(generals, function(g) return not table.contains(selected, g) end)
     room:returnToGeneralPile(generals)
     for _, g in ipairs(selected) do
       room:findGeneral(g)
     end
-    room:askForChooseKingdom(nonlord)
+    room:askForChooseKingdom(players)
 
-    for _, p in ipairs(nonlord) do
+    for _, p in ipairs(players) do
       room:broadcastProperty(p, "general")
     end
     room:setTag("SkipNormalDeathProcess", true)

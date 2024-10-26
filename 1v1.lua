@@ -138,24 +138,19 @@ local m_1v1_getLogic = function()
     chooseGeneral(lord, 2)
     chooseGeneral(nonlord, 1)
 
-    lord.request_data = json.encode({ lord_generals, 1 })
-    lord.default_reply = lord_generals[1]
-    nonlord.request_data = json.encode { nonlord_generals, 1 }
-    nonlord.default_reply = nonlord_generals[1]
-
     room:doBroadcastNotify("ShowToast", Fk:translate("1v1 choose general"))
-    room:doBroadcastRequest("AskForGeneral", room.players)
+    local req = Request:new(room.players, "AskForGeneral")
+    req:setData(lord, { lord_generals, 1 })
+    req:setData(nonlord, { nonlord_generals, 1 })
+    req:setDefaultReply(lord, { lord_generals[1] })
+    req:setDefaultReply(nonlord, { nonlord_generals[1] })
+    req:ask()
+
     for _, p in ipairs(room.players) do
       local tab = p == lord and lord_generals or nonlord_generals
-      local chosen = ""
-      if p.general == "" and p.reply_ready then
-        chosen = json.decode(p.client_reply)[1]
-      else
-        chosen = p.default_reply
-      end
+      local chosen = req:getResult(p)[1]
       room:setPlayerGeneral(p, chosen, true, true)
       removeGeneral(tab, chosen)
-      p.default_reply = ""
     end
 
     room:broadcastProperty(lord, "role")

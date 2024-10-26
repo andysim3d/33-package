@@ -275,35 +275,26 @@ local m_3v3_getLogic = function()
     chooseGeneral(cool_marshal, 2)
     chooseGeneral(warm_marshal, 1)
 
-    cool_marshal.request_data = json.encode({ cool_generals, 3, true })
-    cool_marshal.default_reply = table.concat(table.random(cool_generals, 3), ",")
-    warm_marshal.request_data = json.encode({ warm_generals, 3, true })
-    warm_marshal.default_reply = table.concat(table.random(warm_generals, 3), ",")
+    local req = Request:new({cool_marshal, warm_marshal}, "AskForGeneral")
+    req:setData(cool_marshal, { cool_generals, 3, true })
+    req:setDefaultReply(cool_marshal, table.random(cool_generals, 3))
+    req:setData(warm_marshal, { warm_generals, 3, true })
+    req:setDefaultReply(warm_marshal, table.random(warm_generals, 3))
 
-    room:doBroadcastNotify("ShowToast", Fk:translate("3v3_choose_general"))
-    room:doBroadcastRequest("AskForGeneral", {cool_marshal, warm_marshal})
+    room:doBroadcastNotify("ShowToast", Fk:translate("3v3_choose_general"), {cool_marshal, warm_marshal})
+    req:ask()
 
     room:setBanner("@&cool_generals", 0)
     room:setBanner("@&warm_generals", 0)
 
     local generals = {}
-    if cool_marshal.reply_ready then
-      table.insertTable(generals, json.decode(cool_marshal.client_reply))
-    else
-      table.insertTable(generals, string.split(cool_marshal.default_reply, ","))
-    end
-    if warm_marshal.reply_ready then
-      table.insertTable(generals, json.decode(warm_marshal.client_reply))
-    else
-      table.insertTable(generals, string.split(warm_marshal.default_reply, ","))
-    end
+    table.insertTable(generals, req:getResult(cool_marshal))
+    table.insertTable(generals, req:getResult(warm_marshal))
 
     for i = 1, 6, 1 do
       local p = room.players[i]
       room:setPlayerGeneral(p, generals[i], true, true)
       room:broadcastProperty(p, "general")
-      p.default_reply = ""
-      p.default_reply = ""
     end
   end
 
