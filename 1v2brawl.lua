@@ -100,7 +100,7 @@ local brawl_getLogic = function()
           skills, num, num, "#brawl-choose:::" .. tostring(num), generals
         },
       })
-      req:setDefaultReply(table.random(skills, num))
+      req:setDefaultReply(p, table.random(skills, num))
     end
 
     req:ask()
