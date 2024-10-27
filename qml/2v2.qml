@@ -6,8 +6,8 @@ import Fk.RoomElement
 GraphicsBox {
   id: root
 
-  property list<string> friend_cards: []
-  property list<string> my_cards: []
+  property var friend_cards: []
+  property var my_cards: []
   property string friend_recommend
   property string friend_not_determ: ""
   property string friend_selected: ""
@@ -207,8 +207,8 @@ GraphicsBox {
   function loadData(data) {
     root.title.text = ("你的座次是 %1 , 请选择")
       .arg(luatr("seat#" + roomScene.getPhoto(Self.id).seatNumber))
-    friend_cards = data.friend;
-    my_cards = data.me;
+    root.friend_cards = data.friend;
+    root.my_cards = data.me;
 
     for (let generalName of data.me) {
       if (lcall("GetSameGenerals", generalName).length > 0) {
