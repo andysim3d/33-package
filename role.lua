@@ -30,6 +30,7 @@ local role_mode = fk.CreateGameMode{
   name = "aab_role_mode", -- just to let it at the top of list
   minPlayer = 8,
   maxPlayer = 8,
+  main_mode = "role_mode",
   logic = function()
     local l = GameLogic:subclass("aab_role_mode_logic")
     function l:run()

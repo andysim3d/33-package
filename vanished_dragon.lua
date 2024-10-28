@@ -64,40 +64,6 @@ local desc_vanished_dragon = [[
   【**衠钢槊**】（替换【青龙偃月刀】），武器，攻击范围３：当你使用【杀】指定一名角色为目标后，你可令其弃置你的一张手牌，然后你弃置其一张手牌。
 ]]
 
--- 准备多个角色的武将/性别/势力（会判断隐匿）
----@param players table<ServerPlayer> @ 需要准备的角色表
----@param generals table<string> @ 角色表对应的主将武将表
----@param deputys table<string> @ 角色表对应的副将武将表
-local prepareHiddenGeneral = function (players, generals, deputys)
-  local room = players[1].room
-  for i, player in ipairs(players) do
-    local general = generals[i]
-    local deputy = deputys[i]
-    player.general = general
-    local skills = Fk.generals[general]:getSkillNameList()
-    if Fk.generals[deputy] then
-      player.deputyGeneral = deputy
-      table.insertTable(skills, Fk.generals[deputy]:getSkillNameList())
-    end
-    if table.find(skills, function (s) return Fk.skills[s].isHiddenSkill end) then
-      room:setPlayerMark(player, "__hidden_general", general)
-      if Fk.generals[deputy] then
-        room:setPlayerMark(player, "__hidden_deputy", deputy)
-        player.deputyGeneral = ""
-      end
-      player.general = "hiddenone"
-    end
-    player.gender = Fk.generals[player.general].gender
-    player.kingdom = Fk.generals[player.general].kingdom
-  end
-  room:askForChooseKingdom(players)
-  for _, player in ipairs(players) do
-    room:broadcastProperty(player, "gender")
-    room:broadcastProperty(player, "deputyGeneral")
-    room:broadcastProperty(player, "general")
-    room:broadcastProperty(player, "kingdom")
-  end
-end
 
 local vanished_dragon_getLogic = function()
   local vanished_dragon_logic = GameLogic:subclass("vanished_dragon_logic")
@@ -111,7 +77,7 @@ local vanished_dragon_getLogic = function()
   end
 
   function vanished_dragon_logic:assignRoles()
-    local room = self.room
+    local room = self.room---@type Room
     local players = room.players
     local n = #players
     local roles = self.role_table[n]
@@ -125,9 +91,9 @@ local vanished_dragon_getLogic = function()
         room:setPlayerProperty(p, "role_shown", true)
         room:broadcastProperty(p, "role")
         room:setTag("ShownLoyalist", p.id)
-        p.role = "lord"
+        p.role = "lord" -- for adjustSeats
       else
-        room:notifyProperty(p, p, "role")
+        room:broadcastProperty(p, "role")
       end
     end
   end
@@ -159,7 +125,7 @@ local vanished_dragon_getLogic = function()
   end
 
   function vanished_dragon_logic:chooseGenerals()
-    local room = self.room
+    local room = self.room---@type Room
 
     local generals_blacklist = {
       "cuiyan", "vd__huangfusong", -- 明忠备选
@@ -205,7 +171,8 @@ local vanished_dragon_getLogic = function()
         room:findGeneral(g)
       end
 
-      prepareHiddenGeneral({lord}, {lord_general}, {deputy})
+      room:prepareGeneral(lord, lord_general, deputy, true)
+      room:askForChooseKingdom({lord})
 
       -- 显示技能
       local canAttachSkill = function(player, skillName)
@@ -245,67 +212,26 @@ local vanished_dragon_getLogic = function()
 
     local nonlord = room:getOtherPlayers(lord, true)
     local generals = table.random(room.general_pile, #nonlord * generalNum)
-    for _, p in ipairs(nonlord) do
-      local arg = {}
-      for i = 1, generalNum do
-        table.insert(arg, table.remove(generals, 1))
-      end
-      p.request_data = json.encode{ arg, n }
-      p.default_reply = table.random(arg, n)
+
+    local req = Request:new(nonlord, "AskForGeneral")
+    for i, p in ipairs(nonlord) do
+      local arg = table.slice(generals, (i - 1) * generalNum + 1, i * generalNum + 1)
+      req:setData(p, { arg, n })
+      req:setDefaultReply(p, table.random(arg, n))
     end
 
-    room:notifyMoveFocus(nonlord, "AskForGeneral")
-    room:doBroadcastRequest("AskForGeneral", nonlord)
-
-    local main_selected, deputy_selected = {}, {}
     for _, p in ipairs(nonlord) do
-      local mainGeneral, deputyGeneral
-      if p.general == "" and p.reply_ready then
-        local _generals = json.decode(p.client_reply)
-        mainGeneral = _generals[1]
-        deputyGeneral = _generals[2]
-      else
-        mainGeneral = p.default_reply[1]
-        deputyGeneral = p.default_reply[2]
-      end
-      table.insert(main_selected, mainGeneral)
-      room:findGeneral(mainGeneral)
-      if deputyGeneral and deputyGeneral ~= "" then
-        table.insert(deputy_selected, deputyGeneral)
-        room:findGeneral(deputyGeneral)
-      end
-      p.default_reply = ""
+      local result = req:getResult(p)
+      local general, deputy = result[1], result[2]
+      room:findGeneral(general)
+      room:findGeneral(deputy)
+      room:prepareGeneral(p, general, deputy)
     end
-    prepareHiddenGeneral(nonlord, main_selected, deputy_selected)
 
-    room:setTag("SkipNormalDeathProcess", true)
+    room:askForChooseKingdom(nonlord)
 
   end
 
-  function vanished_dragon_logic:broadcastGeneral()
-    local room = self.room
-    local players = room.players
-    local lord = room:getTag("ShownLoyalist")
-
-    for _, p in ipairs(players) do
-      assert(p.general ~= "")
-      local general = Fk.generals[p.general]
-      local deputy = Fk.generals[p.deputyGeneral]
-      p.maxHp = deputy and math.floor((deputy.maxHp + general.maxHp) / 2)
-        or general.maxHp
-      p.hp = deputy and math.floor((deputy.hp + general.hp) / 2) or general.hp
-      p.shield = math.min(general.shield + (deputy and deputy.shield or 0), 5)
-      -- TODO: setup AI here
-
-      if p.id == lord and p.general ~= "hiddenone"  then
-        p.maxHp = p.maxHp + 1
-        p.hp = p.hp + 1
-      end
-      room:broadcastProperty(p, "maxHp")
-      room:broadcastProperty(p, "hp")
-      room:broadcastProperty(p, "shield")
-    end
-  end
 
   function vanished_dragon_logic:attachSkillToPlayers()
     local room = self.room
@@ -355,53 +281,32 @@ local vanished_dragon_getLogic = function()
   return vanished_dragon_logic
 end
 
----@param killer ServerPlayer
----@param victim ServerPlayer
----@param room Room
-local function rewardAndPunish(killer, victim, room)
-  if killer.dead then return end
-  local shownLoyalist = room:getTag("ShownLoyalist")
-  if (victim.id == shownLoyalist and killer.role == "lord") or (victim.role == "loyalist" and killer.id == shownLoyalist) then
-    killer:throwAllCards("he")
-  elseif victim.role == "rebel" or victim.id == shownLoyalist then
-    killer:drawCards(3, "kill")
-  end
-end
 
 local vanished_dragon_rule = fk.CreateTriggerSkill{
   name = "#vanished_dragon_rule",
-  priority = 10,
+  priority = 0.1,
   mute = true,
-  events = {fk.Deathed},
-  --- FIXME:执行奖惩时机应为fk.BuryVictim，需要SkipGameRule逻辑大改
+  events = {fk.BuryVictim},
   can_trigger = function(self, event, target, player, data)
-    return target == player and player.rest == 0
+    return target == player and player.rest == 0 and player.id == player.room:getTag("ShownLoyalist")
   end,
   on_cost = Util.TrueFunc,
   on_use = function(self, event, target, player, data)
     local room = player.room
-    local damage = data.damage
-    if damage and damage.from then
-      local killer = damage.from
-      rewardAndPunish(killer, player, room)
+    local lord = room:getLord()
+    if not lord then return end
+    room:setPlayerProperty(lord, "role_shown", true)
+    room:broadcastProperty(lord, "role")
+    room:sendLog{type = "#VDLordExploded", from = lord.id, toast = true}
+
+    local skills = Fk.generals[lord.general]:getSkillNameList(true)
+    local deputy = Fk.generals[lord.deputyGeneral]
+    if deputy then
+      table.insertTableIfNeed(skills, deputy:getSkillNameList(true))
     end
-
-    if player.id == room:getTag("ShownLoyalist") then
-      local lord = room:getLord()
-      if not lord then return end
-      room:setPlayerProperty(lord, "role_shown", true)
-      room:broadcastProperty(lord, "role")
-      room:sendLog{type = "#VDLordExploded", from = lord.id, toast = true}
-
-      local skills = Fk.generals[lord.general]:getSkillNameList(true)
-      local deputy = Fk.generals[lord.deputyGeneral]
-      if deputy then
-        table.insertTableIfNeed(skills, deputy:getSkillNameList(true))
-      end
-      for _, sname in ipairs(skills) do
-        if Fk.skills[sname].lordSkill then
-          room:handleAddLoseSkills(lord, sname, nil, false)
-        end
+    for _, sname in ipairs(skills) do
+      if Fk.skills[sname].lordSkill then
+        room:handleAddLoseSkills(lord, sname, nil, false)
       end
     end
   end,
@@ -412,6 +317,7 @@ local vanished_dragon = fk.CreateGameMode{
   name = "vanished_dragon",
   minPlayer = 6,
   maxPlayer = 8,
+  main_mode = "role_mode",
   rule = vanished_dragon_rule,
   logic = vanished_dragon_getLogic,
   surrender_func = function(self, playedTime)
@@ -422,6 +328,15 @@ local vanished_dragon = fk.CreateGameMode{
       return {hp = player.hp + 1, maxHp = player.maxHp + 1}
     end
     return {}
+  end,
+  reward_punish = function (self, victim, killer)
+    if not killer or killer.dead then return end
+    local shownLoyalist = victim.room:getTag("ShownLoyalist")
+    if victim.role == "loyalist" and ((killer.role == "lord" and killer.role_shown) or killer.id == shownLoyalist) then
+      killer:throwAllCards("he")
+    elseif victim.role == "rebel" or victim.id == shownLoyalist then
+      killer:drawCards(3, "kill")
+    end
   end
 }
 
@@ -430,7 +345,7 @@ local vanished_dragon = fk.CreateGameMode{
 local vd_dongcha = fk.CreateTriggerSkill{
   name = "vd_dongcha",
   anim_type = "control",
-  events = {fk.GameStart, fk.EventPhaseStart}, 
+  events = {fk.GameStart, fk.EventPhaseStart},
   can_trigger = function(self, event, target, player, data)
     if player:hasSkill(self) then
       if event == fk.GameStart then return true end
@@ -445,32 +360,40 @@ local vd_dongcha = fk.CreateTriggerSkill{
       local targets = table.map(table.filter(room.alive_players, function(p) return #p:getCardIds("ej") > 0 end), Util.IdMapper)
       local tos = room:askForChoosePlayers(player, targets, 1, 1, "#vd_dongcha-ask", self.name, true)
       if #tos > 0 then
-        self.cost_data = tos[1]
+        self.cost_data = {tos = tos}
         return true
       end
-      return false
+    else
+      self.cost_data = nil
+      return true
     end
-    return true
   end,
   on_use = function(self, event, target, player, data)
     local room = player.room
     if event == fk.GameStart then
-      local players = table.simpleClone(room.alive_players)
-      table.shuffle(players)
-      for _, p in ipairs(players) do
-        if p.role == "rebel" then
-          room:notifyProperty(player, p, "role")
-          break
-        end
+      local targets = table.filter(room.alive_players, function(p) return p.role == "rebel" end)
+      if #targets > 0 then
+        room:addTableMark(player, "vd_dongcha", table.random(targets).id)
       end
       room:sendLog{type = "#VDDongcha", from = player.id, toast = true}
     else
-      local to = room:getPlayerById(self.cost_data)
+      local to = room:getPlayerById(self.cost_data.tos[1])
       local card = room:askForCardChosen(player, to, "ej", self.name)
       room:throwCard({card}, self.name, to, player)
     end
   end,
 }
+
+local vd_dongcha_visible = fk.CreateVisibilitySkill{
+  name = "#vd_dongcha_visible",
+  role_visible = function (self, player, target)
+    if table.contains(player:getTableMark("vd_dongcha"), target.id) then
+      return true
+    end
+  end,
+}
+vd_dongcha:addRelatedSkill(vd_dongcha_visible)
+
 Fk:addSkill(vd_dongcha)
 
 -- 舍身：锁定技，主公处于濒死状态即将死亡时，你令其体力上限+1，回复体力至X点（X为你的体力值），获得你所有牌，然后你死亡。

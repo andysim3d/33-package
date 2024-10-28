@@ -1,6 +1,6 @@
 local extension = Package:new("vanished_dragon_cards", Package.CardPack)
 extension.extensionName = "gamemode"
---extension.game_modes_whitelist = {"chaos_mode"}
+extension.game_modes_whitelist = { "vanished_dragon" }
 extension.game_modes_blacklist = {"aaa_role_mode", "m_1v1_mode", "m_1v2_mode", "m_2v2_mode", "zombie_mode", "heg_mode"}
 
 Fk:loadTranslationTable{
@@ -57,7 +57,7 @@ local diversionSkill = fk.CreateActiveSkill{
   end
 }
 local diversion = fk.CreateTrickCard{
-  name = "&diversion",
+  name = "diversion",
   skill = diversionSkill,
   suit = Card.Spade,
   number = 3,
@@ -137,7 +137,7 @@ local paranoid_result = fk.CreateTriggerSkill{
 }
 Fk:addSkill(paranoid_result)
 local paranoid = fk.CreateDelayedTrickCard{
-  name = "&paranoid",
+  name = "paranoid",
   skill = paranoidSkill,
   suit = Card.Spade,
   number = 10,
@@ -190,7 +190,7 @@ local reinforcementSkill = fk.CreateActiveSkill{
   end
 }
 local reinforcement = fk.CreateTrickCard{
-  name = "&reinforcement",
+  name = "reinforcement",
   skill = reinforcementSkill,
   suit = Card.Heart,
   number = 7,
@@ -245,7 +245,7 @@ local abandoningArmorSkill = fk.CreateActiveSkill{
   end
 }
 local abandoningArmor = fk.CreateTrickCard{
-  name = "&abandoning_armor",
+  name = "abandoning_armor",
   skill = abandoningArmorSkill,
   suit = Card.Club,
   number = 12,
@@ -355,7 +355,7 @@ local craftyEscapeSkill = fk.CreateActiveSkill{
   end,
 }
 local craftyEscape = fk.CreateTrickCard{
-  name = "&crafty_escape",
+  name = "crafty_escape",
   skill = craftyEscapeSkill,
   suit = Card.Spade,
   number = 11,
@@ -442,7 +442,7 @@ local floatingThunderSkill = fk.CreateActiveSkill{
   end,
 }
 local floatingThunder = fk.CreateDelayedTrickCard{
-  name = "&floating_thunder",
+  name = "floating_thunder",
   suit = Card.Spade,
   number = 1,
   skill = floatingThunderSkill,
@@ -501,7 +501,7 @@ local glitteryArmorTrigger = fk.CreateTriggerSkill{
 }
 Fk:addSkill(glitteryArmorTrigger)
 local glitteryArmor = fk.CreateArmor{
-  name = "&glittery_armor",
+  name = "glittery_armor",
   suit = Card.Spade,
   number = 2,
   equip_skill = glitteryArmorSkill,
@@ -557,7 +557,7 @@ local sevenStarsSwordSkill = fk.CreateTriggerSkill{
 }
 Fk:addSkill(sevenStarsSwordSkill)
 local sevenStarsSword = fk.CreateWeapon{
-  name = "&seven_stars_sword",
+  name = "seven_stars_sword",
   suit = Card.Spade,
   number = 6,
   attack_range = 2,
@@ -576,22 +576,23 @@ local steelLanceSkill = fk.CreateTriggerSkill{
   attached_equip = "steel_lance",
   events = {fk.TargetSpecified},
   can_trigger = function(self, event, target, player, data)
-    return target == player and player:hasSkill(self) and data.card and data.card.trueName == "slash" and not player:isKongcheng() and not player.dead--not player.room:getPlayerById(data.to):isKongcheng()
+    return target == player and player:hasSkill(self) and data.card and data.card.trueName == "slash"
+    and not player:isKongcheng() and not player.room:getPlayerById(data.to).dead
   end,
   on_use = function(self, event, target, player, data)
     local room = player.room
-    local target = room:getPlayerById(data.to)
-    if target.dead or player:isKongcheng() then return end
-    local cid = room:askForCardChosen(target, player, "h", self.name)
-    room:throwCard({cid}, self.name, player, target)
-    if player.dead or target:isKongcheng() then return end
-    cid = room:askForCardChosen(player, target, "h", self.name)
-    room:throwCard({cid}, self.name, target, player)
+    local to = room:getPlayerById(data.to)
+    if to.dead or player:isKongcheng() then return end
+    local cid = room:askForCardChosen(to, player, "h", self.name)
+    room:throwCard({cid}, self.name, player, to)
+    if player.dead or to:isKongcheng() then return end
+    cid = room:askForCardChosen(player, to, "h", self.name)
+    room:throwCard({cid}, self.name, to, player)
   end,
 }
 Fk:addSkill(steelLanceSkill)
 local steelLance = fk.CreateWeapon{
-  name = "&steel_lance",
+  name = "steel_lance",
   suit = Card.Spade,
   number = 5,
   attack_range = 3,
