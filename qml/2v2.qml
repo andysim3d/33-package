@@ -173,6 +173,7 @@ GraphicsBox {
         onClicked: {
           cheatLoader.sourceComponent = Qt.createComponent("./SameConvertFrame.qml");
           cheatLoader.item.extra_data = { cards: my_cards };
+          cheatLoader.item.finish.connect(root.my_cardsChanged);
           cheatDrawer.open();
         }
       }
