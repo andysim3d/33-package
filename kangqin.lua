@@ -49,9 +49,12 @@ local kangqin_getLogic = function()
     local n = room.settings.enableDeputy and 2 or 1
     local lord = room:getLord()
     room.current = lord
-    -- 选将
+    -- 询问选将
     local lords, soldiers = table.random(qin_generals, math.max(2, generalNum//3) ), table.simpleClone(qin_soldiers)
     local others = room:getNGenerals( 2* generalNum )
+    local to_ask = table.filter(room.players, function(p) return p.role ~= "rebel" end)
+    local req = Request:new(to_ask, "AskForGeneral")
+    req.focus_text = "AskForGeneral"
     for i, p in ipairs(room.players) do
       local arg, count = nil, 0
       if p == lord then -- 主公
@@ -67,31 +70,18 @@ local kangqin_getLogic = function()
         room:broadcastProperty(p, "general")
       end
       if arg then
-        p.request_data = json.encode{ arg, n }
-        p.default_reply = table.random(arg, n)
+        req:setData(p, {arg, n})
+        req:setDefaultReply(p, table.random(arg, n))
       end
     end
-    -- 询问选将
-    local to_ask = table.filter(room.players, function(p) return p.role ~= "rebel" end)
-    room:notifyMoveFocus(to_ask, "AskForGeneral")
-    room:doBroadcastRequest("AskForGeneral", to_ask)
     -- 设置武将
     local selected = {}
-    for _, p in ipairs(room.players) do
-      if p.general == "" then
-        if p.reply_ready then
-          local general_ret = json.decode(p.client_reply)
-          local general, deputy = general_ret[1], general_ret[2]
-          table.insertTableIfNeed(selected, general_ret)
-          room:setPlayerGeneral(p, general, true, true)
-          room:setDeputyGeneral(p, deputy)
-        else
-          room:setPlayerGeneral(p, p.default_reply[1], true, true)
-          room:setDeputyGeneral(p, p.default_reply[2])
-          table.insertTableIfNeed(selected, p.default_reply)
-        end
-      end
-      p.default_reply = ""
+    for _, p in ipairs(to_ask) do
+      local general_ret = req:getResult(p)
+      local general, deputy = general_ret[1], general_ret[2]
+      table.insertTableIfNeed(selected, general_ret)
+      room:setPlayerGeneral(p, general, true, true)
+      room:setDeputyGeneral(p, deputy)
     end
     -- 返回武将库
     local ret_generals = table.filter(others, function(g) return not table.contains(selected, g) end)
@@ -119,20 +109,19 @@ local kangqin_getLogic = function()
       return p.role == "rebel"
     end)
     local toSelectSkills = getSkills(room, #to_ask*num)
+    local req = Request:new(to_ask, "CustomDialog")
+    req.focus_text = "ChooseSkillsOfHans"
     for i, p in ipairs(to_ask) do
       local choices = table.slice(toSelectSkills, (i-1)*num +1, i*num +1)
-      p.request_data = json.encode({
+      req:setData(p, {
         path = "packages/utility/qml/ChooseSkillBox.qml",
-        data = {
-          choices, 3*n, 3*n, "#kangqin-choose:::" .. tostring(3*n), {}
-        },
+        data = { choices, 3*n, 3*n, "#kangqin-choose:::" .. tostring(3*n), {} },
       })
-      p.default_reply = table.random(choices, 3*n)
+      req:setDefaultReply(p, table.random(choices, n*3))
     end
-    room:doBroadcastRequest("CustomDialog", to_ask)
+
     for _, p in ipairs(to_ask) do
-      local choice = p.reply_ready and json.decode(p.client_reply) or p.default_reply
-      p.default_reply = ""
+      local choice = req:getResult(p)
       room:handleAddLoseSkills(p, table.concat(choice, "|"), nil, false)
     end
     -- 上技能函数
@@ -682,6 +671,7 @@ trans[":#kq__taihou"] = "游戏开始时，所有女性角色的体力值和体�
 trans["#kq__draw"] = "令其摸一张牌"
 trans["#kq__recover"] = "令其回复1点体力"
 trans["#scth-ask"] = "选择一项令 %src 执行"
+trans["ChooseSkillsOfHans"] = "从以下技能中选择"
 
 Fk:loadTranslationTable(trans)
 
