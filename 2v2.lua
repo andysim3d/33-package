@@ -83,27 +83,6 @@ local m_2v2_getLogic = function()
       room:setPlayerGeneral(p, general, true, true)
       room:findGeneral(general)
     end
-    --[[
-    for _, p in ipairs(nonlord) do
-      local arg = {}
-      for i = 1, generalNum do
-        table.insert(arg, table.remove(generals, 1).name)
-      end
-      p.request_data = json.encode({ arg, 1 })
-      p.default_reply = arg[1]
-    end
-
-    room:doBroadcastRequest("AskForGeneral", nonlord)
-    for _, p in ipairs(nonlord) do
-      if p.general == "" and p.reply_ready then
-        local general = json.decode(p.client_reply)[1]
-        room:setPlayerGeneral(p, general, true, true)
-      else
-        room:setPlayerGeneral(p, p.default_reply, true, true)
-      end
-      p.default_reply = ""
-    end
-    --]]
 
     room:askForChooseKingdom(nonlord)
     room:setTag("SkipNormalDeathProcess", true)

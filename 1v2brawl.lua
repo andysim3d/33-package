@@ -199,6 +199,7 @@ local brawl_mode = fk.CreateGameMode{
   name = "brawl_mode",
   minPlayer = 3,
   maxPlayer = 3,
+  main_mode = "1v2_mode",
   rule = brawl_rule,
   logic = brawl_getLogic,
   surrender_func = function(self, playedTime)

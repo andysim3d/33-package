@@ -184,6 +184,7 @@ local m_1v2_mode = fk.CreateGameMode{
   name = "m_1v2_mode",
   minPlayer = 3,
   maxPlayer = 3,
+  main_mode = "1v2_mode",
   rule = m_1v2_rule,
   logic = m_1v2_getLogic,
   surrender_func = function(self, playedTime)
