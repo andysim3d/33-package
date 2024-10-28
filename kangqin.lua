@@ -671,7 +671,7 @@ trans[":#kq__taihou"] = "游戏开始时，所有女性角色的体力值和体�
 trans["#kq__draw"] = "令其摸一张牌"
 trans["#kq__recover"] = "令其回复1点体力"
 trans["#scth-ask"] = "选择一项令 %src 执行"
-trans["ChooseSkillsOfHans"] = "从以下技能中选择"
+trans["ChooseSkillsOfHans"] = "汉将技能"
 
 Fk:loadTranslationTable(trans)
 
