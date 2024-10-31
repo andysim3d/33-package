@@ -98,7 +98,7 @@ local m_3v3_desc = [[
   | 司马懿（界） | 马超（界） | 甘宁（界） | 吕布（专属） |
   | 张辽（界） | 黄月英（界） | 大乔（界） | 貂蝉（标） |
   | 甄姬（标） | 姜维（手杀界） | 孙尚香（界） | 伏完 |
-  | 典韦（手杀界） | 徐庶（一将） | 孙策（手杀界） | SP孙策 |
+  | 典韦（手杀界） | 徐庶（一将） | 孙策（手杀界） |
   | 李典 | 法正 | 诸葛瑾（专属） |  |
   | 文聘（专属） | 孙乾 | 徐盛（专属） |  |
   | 郭淮（新服界） | 黄权（专属） | 凌统 |  |
@@ -106,42 +106,6 @@ local m_3v3_desc = [[
   |  |  | 虞翻 |  |
   |  |  | 顾雍 |  |
   |  |  | 凌操（手杀） |  |
-  | 2019版：|  |  |  |
-  | 曹操（界） | 刘备（标） | 孙权（标） | 华佗（标） |
-  | 司马懿（界） | 关羽（专属） | 甘宁（界） | 吕布（专属） |
-  | 夏侯惇（专属） | 张飞（标） | 周瑜（界） | 貂蝉（标） |
-  | 张辽（标） | 诸葛亮（标） | 大乔（标） | 庞德（OL界） |
-  | 许褚（界） | 赵云（界） | 孙尚香（标） | 陈宫 |
-  | 郭嘉（标） | 马超（界） | 小乔（界） | 伏完 |
-  | 甄姬（标） | 黄月英（标） | 孙坚 |  |
-  | 典韦（手杀界） | 姜维 | 孙策 |  |
-  | 徐晃（手杀界） | 陈到 | 诸葛瑾（专属） |  |
-  | 李典 | 黄权（专属） | 虞翻 |  |
-  | 文聘（专属） | 马谡（RE） | 顾雍 |  |
-  |  | 周仓 |  |  |
-  | 2013版：|  |  |  |
-  | 曹操 | 刘备 | 孙权 | 华佗 |
-  | 司马懿 | 关羽（专属） | 甘宁 | 吕布（专属） |
-  | 夏侯惇（专属） | 张飞 | 黄盖 | 貂蝉 |
-  | 张辽 | 诸葛亮 | 周瑜 | 庞德 |
-  | 郭嘉 | 赵云（专属） | 大乔 | 贾诩 |
-  | 甄姬 | 马超 | 孙尚香 |  |
-  | 夏侯渊 | 黄月英 | 小乔 |  |
-  | 徐晃 | 姜维 | 孙坚 |  |
-  | 文聘（专属） |  | 孙策 |  |
-  |  |  | 诸葛瑾（专属） |  |
-  | 2012版：|  |  |  |
-  | 曹操 | 刘备 | 孙权 | 华佗 |
-  | 司马懿 | 关羽 | 甘宁 | 吕布 |
-  | 张辽 | 张飞 | 黄盖 | 貂蝉 |
-  | 许褚 | 诸葛亮 | 周瑜 | 庞德 |
-  | 郭嘉 | 赵云 | 陆逊 |  |
-  | 甄姬 | 马超 | 大乔 |  |
-  | 夏侯渊 | 黄月英 | 孙尚香 |  |
-  | 徐晃 | 黄忠 | 小乔 |  |
-  |  | 孟获 | 周泰 |  |
-  |  |  | 孙坚 |  |
-  |  |  | 诸葛瑾（专属） |  |
 ]]
 
 local m_3v3_getLogic = function()
@@ -177,11 +141,10 @@ local m_3v3_getLogic = function()
 
     local general_pool = {
       --2023
+      "ex__zhangliao",
       "ty_ex__guohuai",
       "ex__huangyueying", "m_ex__jiangwei", "xushu", "fazheng", "sunqian",
       "ex__daqiao", "ex__sunshangxiang", "m_ex__sunce", "lingtong", "handang", "lingcao",
-      "ol_sp__sunce",
-      --2019
       "ex__caocao", "ex__simayi", "ex__xuchu", "m_ex__dianwei", "m_ex__xuhuang", "lidian",
       "ex__zhaoyun", "ex__machao", "chendao", "re__masu", "zhoucang",
       "ex__ganning", "ex__zhouyu", "ol_ex__xiaoqiao", "yufan", "guyong",
@@ -189,7 +152,7 @@ local m_3v3_getLogic = function()
       --2013
       "jiangwei", "sunce", "jiaxu",
       --2012
-      "caocao", "simayi", "zhaoliao", "xuchu", "guojia", "zhenji", "xiahouyuan", "xuhuang",
+      "zhaoliao", "xuchu", "guojia", "zhenji", "xiahouyuan", "xuhuang",
       "liubei", "guanyu", "zhangfei", "zhugeliang", "zhaoyun", "machao", "huangyueying", "huangzhong", "menghuo",
       "sunquan", "ganning", "huanggai", "zhouyu", "luxun", "daqiao", "sunshangxiang", "xiaoqiao", "zhoutai", "sunjian",
       "huatuo", "lvbu", "diaochan", "pangde",

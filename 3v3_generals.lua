@@ -530,4 +530,33 @@ Fk:loadTranslationTable{
   ["~v33__xusheng"] = "可怜一身胆略，尽随一抔黄土……",
 }
 
+local guohuai = General(extension, "v33__guohuai", "wei", 4)
+local v33_jingce = fk.CreateTriggerSkill{
+  name = "v33_jingce",
+  anim_type = "drawcard",
+  events= {fk.EventPhaseStart}, 
+  can_trigger = function(self, event, target, player, data)
+    return target == player and player.phase == Player.Finish and player:hasSkill(self) and 
+    #player.room.logic:getEventsOfScope(GameEvent.UseCard, 998, function(e)
+      local use = e.data[1]
+      return use.from == player.id 
+    end, Player.HistoryTurn) >= player.hp 
+  end,
+  on_use = function(self, event, target, player, data)
+    player:drawCards(2, self.name)
+  end,
+}
+
+guohuai:addSkill(v33_jingce)
+Fk:loadTranslationTable{
+  ["v33__guohuai"] = "界郭淮",
+  ["#v33__guohuai"] = "垂问秦雍",
+  ["illustrator:v33__guohuai"] = "心中一凛",
+  ["v33_jingce"] = "精策",
+  [":v33_jingce"] = "结束阶段，若你本回合已使用的牌数大于或等于你的体力值，你可以摸两张牌",
+  ["$v33_jingce1"] = "精细入微，策敌制胜。",
+  ["$v33_jingce2"] = "妙策如神，精兵强将，安有不胜之理？",
+  ["~v33__guohuai"] = "岂料姜维……空手接箭！",
+}
+
 return extension
